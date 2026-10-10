@@ -125,7 +125,7 @@ All values come from `Settings`; none may be hard-coded in a tool. Starting defa
 
 | Key | Used by | Starting default |
 |---|---|---|
-| `MAX_TOOL_OUTPUT_CHARS` | all | 8000 |
+| `MAX_TOOL_OUTPUT_CHARS` | all | 4000 |
 | `MAX_ARG_CHARS` | registry | 20000 |
 | `LIST_MAX_DEPTH` | `list_files` | 3 |
 | `MAX_LIST_ENTRIES` | `list_files` | 200 |
@@ -137,7 +137,7 @@ All values come from `Settings`; none may be hard-coded in a tool. Starting defa
 | `MAX_PATCH_ATTEMPTS_PER_FILE` | `apply_patch` | 3 |
 | `EDITABLE_EXTENSIONS` | `apply_patch` | `.py` |
 | `MAX_RESULT_RETRIEVALS_PER_RUN` | `get_tool_result` | 10 |
-| `HISTORY_KEEP_RECENT_RESULTS` | history | 5 |
+| `HISTORY_KEEP_RECENT_RESULTS` | history | 3 |
 | `LOG_PATH`, `METRICS_PATH` | `read_logs`, `read_metrics` | set per target repo, workspace-relative |
 
 ---

@@ -76,7 +76,7 @@ class Settings:
         default_factory=lambda: int(os.getenv("COMMAND_TIMEOUT_SECONDS", "60"))
     )
     max_tool_output_chars: int = field(
-        default_factory=lambda: int(os.getenv("MAX_TOOL_OUTPUT_CHARS", "8000"))
+        default_factory=lambda: int(os.getenv("MAX_TOOL_OUTPUT_CHARS", "4000"))
     )
     max_patch_attempts_per_file: int = field(
         default_factory=lambda: int(
@@ -86,11 +86,16 @@ class Settings:
     llm_max_retries: int = field(
         default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "4"))
     )
+    max_request_tokens_estimate: int = field(
+        default_factory=lambda: int(
+            os.getenv("MAX_REQUEST_TOKENS_ESTIMATE", "5000")
+        )
+    )
 
-    # Context / history limits (HISTORY_KEEP_RECENT_RESULTS defaults to 5)
+    # Context / history limits (HISTORY_KEEP_RECENT_RESULTS defaults to 3)
     history_keep_recent_results: int = field(
         default_factory=lambda: int(
-            os.getenv("HISTORY_KEEP_RECENT_RESULTS", "5")
+            os.getenv("HISTORY_KEEP_RECENT_RESULTS", "3")
         )
     )
     max_result_retrievals_per_run: int = field(

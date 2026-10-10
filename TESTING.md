@@ -702,7 +702,7 @@ The history system must:
 4.  retrieve older results using `get_tool_result(call_id)`;
 5.  enforce the per-run retrieval limit.
 
-The current default is **5 recent full results** and **10 retrievals per
+The current default is **3 recent full results** and **10 retrievals per
 run**.
 
 Tests must verify:

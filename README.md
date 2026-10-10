@@ -293,7 +293,7 @@ Tool output can become large over multiple iterations.
 CodePilot therefore uses a hybrid history strategy:
 
 ```text
-Most recent 5 tool results
+Most recent 3 tool results
         ↓
       full
 

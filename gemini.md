@@ -38,7 +38,7 @@ If a file is missing or two documents contradict each other, stop and ask me. Do
 
 ## Long-conversation handling
 - Store each full tool result as one JSON file per tool call in persistent run state.
-- Keep the 5 most recent tool results in full and compress older ones into structured summaries.
+- Keep the 3 most recent tool results in full and compress older ones into structured summaries.
 - The agent can retrieve an original result through a retrieval tool, up to 10 retrievals per run.
 
 ## Code style

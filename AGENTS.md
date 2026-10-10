@@ -62,10 +62,11 @@ All limits live in one config object and are overridable by environment variable
 | `MAX_ITERATIONS` | 6 |
 | `MAX_TOOL_CALLS_PER_ITERATION` | 10 |
 | `COMMAND_TIMEOUT_SECONDS` | 60 |
-| `MAX_TOOL_OUTPUT_CHARS` | 8000 |
+| `MAX_TOOL_OUTPUT_CHARS` | 4000 |
 | `MAX_PATCH_ATTEMPTS_PER_FILE` | 3 |
-| `LLM_MAX_RETRIES` | 4 (exponential backoff on HTTP 429 and transient errors) |
-| `HISTORY_KEEP_RECENT_RESULTS` | 5 |
+| `LLM_MAX_RETRIES` | 4 (exponential backoff on HTTP 429 honoring retry-after header and transient errors) |
+| `MAX_REQUEST_TOKENS_ESTIMATE` | 5000 |
+| `HISTORY_KEEP_RECENT_RESULTS` | 3 |
 | `MAX_RESULT_RETRIEVALS_PER_RUN` | 10 |
 
 The agent stops when any of these happens, and always writes a report stating the reason:

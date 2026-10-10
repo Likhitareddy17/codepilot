@@ -523,7 +523,7 @@ The system must not lose older evidence merely because the LLM context is compre
 Keep:
 
 ```text
-5 most recent tool results → full
+3 most recent tool results → full
 older results             → structured summaries
 ```
 
@@ -1362,7 +1362,7 @@ The CodePilot MVP is complete only when all of the following are true:
 - [ ] Regression detection is test-ID based.
 - [ ] Tool-call budget is enforced.
 - [ ] Historical tool results remain retrievable.
-- [ ] Five most recent tool results remain full in active context.
+- [ ] Three most recent tool results remain full in active context.
 - [ ] Older results are compressed into structured summaries.
 - [ ] Retrieval limit is enforced at 10 per run.
 - [ ] FakeLLM enables deterministic offline tests.

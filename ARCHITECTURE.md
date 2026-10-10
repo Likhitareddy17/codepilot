@@ -423,7 +423,7 @@ Because development and demos happen on Windows, the coding agent must handle th
 | C10 | `NO_PROGRESS` = same failing tests and same main error after 2 consecutive patches |
 | C11 | Old tool results are compressed into structured summaries; full results are preserved in persistent run state; the agent can retrieve an original result when needed (adds the `get_tool_result` tool) |
 | C12 | Full tool results are stored on disk as one JSON file per tool call under `runs/<run_id>/results/`, and also held in memory during the run |
-| C13 | Starting config defaults: keep the 5 most recent results in full; allow 10 retrievals per run (both configurable) |
+| C13 | Starting config defaults: keep the 3 most recent results in full; allow 10 retrievals per run (both configurable) |
 
 **Proposed by me, not yet confirmed:** none. Tool-level proposals are tracked in `TOOLS.md` section 12.
 
