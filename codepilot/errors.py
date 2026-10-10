@@ -1,0 +1,1 @@
+"""Defined error types."""

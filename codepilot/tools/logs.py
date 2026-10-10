@@ -1,0 +1,1 @@
+"""Log reader tool."""
