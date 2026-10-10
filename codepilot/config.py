@@ -7,9 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Default LLM model recommendation:
-# We suggest "llama-3.3-70b-versatile" because it is Groq's current flagship model
-# for robust tool calling, superior reasoning, and JSON structured outputs.
-DEFAULT_LLM_MODEL = "llama-3.3-70b-versatile"
+# We use "openai/gpt-oss-120b" as configured for Groq live model integration.
+DEFAULT_LLM_MODEL = "openai/gpt-oss-120b"
 
 # Default protected paths and denylists per spec (AGENTS.md A4, TOOLS.md T7)
 DEFAULT_PROTECTED_PATHS = [
