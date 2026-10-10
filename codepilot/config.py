@@ -6,6 +6,11 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Default LLM model recommendation:
+# We suggest "llama-3.3-70b-versatile" because it is Groq's current flagship model
+# for robust tool calling, superior reasoning, and JSON structured outputs.
+DEFAULT_LLM_MODEL = "llama-3.3-70b-versatile"
+
 # Default protected paths and denylists per spec (AGENTS.md A4, TOOLS.md T7)
 DEFAULT_PROTECTED_PATHS = [
     "tests/",
@@ -55,7 +60,7 @@ class Settings:
     )
     llm_model: str = field(
         default_factory=lambda: os.getenv(
-            "GROQ_MODEL", os.getenv("LLM_MODEL", "llama3-70b-8192")
+            "GROQ_MODEL", os.getenv("LLM_MODEL", DEFAULT_LLM_MODEL)
         )
     )
 
@@ -83,7 +88,7 @@ class Settings:
         default_factory=lambda: int(os.getenv("LLM_MAX_RETRIES", "4"))
     )
 
-    # Context / history limits
+    # Context / history limits (HISTORY_KEEP_RECENT_RESULTS defaults to 5)
     history_keep_recent_results: int = field(
         default_factory=lambda: int(
             os.getenv("HISTORY_KEEP_RECENT_RESULTS", "5")
