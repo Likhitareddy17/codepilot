@@ -28,7 +28,7 @@ The LLM is responsible for:
 -   proposing minimal source-code changes;
 -   interpreting verification results;
 -   deciding whether further investigation is necessary;
--   producing structured decisions for the controller.
+-   producing reasoning and native tool calls for the controller.
 
 The LLM is **not** responsible for:
 
@@ -102,7 +102,7 @@ Retrieved Historical Evidence
       ↓
 Available Tools
       ↓
-Expected Structured Decision
+Expected Native Tool Call and Reasoning
 ```
 
 The controller should construct the LLM request from these components.
@@ -165,8 +165,7 @@ IMPORTANT RULES:
   REGRESSION, or another terminal condition.
 - Do not attempt to bypass controller safety rules.
 
-Your output must follow the structured decision format required by the
-controller and must use only the tools made available to you.
+Your output must use native tool calling with reasoning and must use only the tools made available to you.
 ```
 
 ------------------------------------------------------------------------
@@ -722,47 +721,13 @@ The LLM must not bypass retry limits.
 
 ------------------------------------------------------------------------
 
-# 22. Structured Decision Format
+# 22. Native Tool Calling and Reasoning
 
-The preferred LLM response format is structured JSON.
+CodePilot uses native provider tool calling instead of a custom JSON decision envelope.
 
-Conceptual schema:
+The agent's short reasoning and hypothesis are included directly in the assistant message text (or response content), accompanied by native tool calls. 
 
-``` json
-{
-  "reasoning_summary": "Brief evidence-based explanation.",
-  "hypothesis": "Specific suspected root cause.",
-  "confidence": 0.85,
-  "next_action": {
-    "type": "tool_call",
-    "tool": "read_file",
-    "arguments": {
-      "path": "app/pricing.py"
-    }
-  }
-}
-```
-
-For a patch:
-
-``` json
-{
-  "reasoning_summary": "The discount calculation treats a percentage as an absolute amount.",
-  "hypothesis": "The calculation is subtracting the percentage directly.",
-  "next_action": {
-    "type": "tool_call",
-    "tool": "apply_patch",
-    "arguments": {
-      "path": "app/pricing.py",
-      "old": "...",
-      "new": "..."
-    }
-  }
-}
-```
-
-The exact implementation schema should be defined by the controller and
-tool-registry implementation.
+This reasoning and tool call are recorded in `run_trace.json` by the controller for audit and debugging purposes.
 
 The LLM must not return arbitrary tool names.
 
@@ -1029,7 +994,7 @@ without understanding why the previous behavior failed.
 -   historical retrieval behavior is defined;
 -   tool-error behavior is defined;
 -   prompt-injection handling is defined;
--   structured decision expectations are defined;
+-   native tool calling and reasoning expectations are defined;
 -   final-report behavior is defined;
 -   FakeLLM expectations are defined;
 -   prompts remain compatible with the controller and tool contracts.

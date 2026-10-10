@@ -58,7 +58,7 @@ Only two things leave the machine: LLM requests to Groq, and (later, opt-in) not
 ```text
 codepilot/
 ├── main.py                  CLI entry point
-├── agent/
+├── codepilot/
 │   ├── config.py            Settings loaded from environment / CLI flags
 │   ├── state.py             Dataclasses and enums (see section 8)
 │   ├── controller.py        The agent loop, limits, stop conditions
@@ -349,7 +349,7 @@ Implements `AGENTS.md` section A4 in one module so the rules live in one place.
 4. For writes, also reject if the path matches the protected list.
 5. For reads, also reject if the path matches the denylist.
 
-**Subprocess environment:** pytest and Git run with a **sanitised environment** that removes `LLM_API_KEY` and any variable whose name contains `KEY`, `TOKEN`, `SECRET` or `PASSWORD`. The code under test is untrusted and must not be able to read the key.
+**Subprocess environment:** pytest and Git run with a **sanitised environment** that removes `GROQ_API_KEY`, `LLM_API_KEY` and any variable whose name contains `KEY`, `TOKEN`, `SECRET` or `PASSWORD`. The code under test is untrusted and must not be able to read the key.
 
 **Subprocess rules:** argument lists only, never `shell=True`; working directory is the workspace; timeout always set; Python is invoked as `sys.executable -m pytest`, not a bare `pytest` command.
 

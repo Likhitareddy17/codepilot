@@ -157,7 +157,7 @@ A hypothesis is never reported as a fact. "Fixed" means a test run after the cha
 - Evidence inspected (files, logs, metrics)
 - Root cause (marked as inferred or verified)
 - Patches applied (diff)
-- Final test result and before/after counts, e.g. `3/8 -> 8/8 passing in 4 iterations`
+- Final test result and before/after counts, e.g. `4/8 -> 8/8 passing in 4 iterations`
 - Stop reason
 - Anything unresolved
 
@@ -219,8 +219,8 @@ Provider settings come from environment variables (see `.env.example`):
 
 ```text
 LLM_BASE_URL=https://api.groq.com/openai/v1
-LLM_API_KEY=<your Groq key>
-LLM_MODEL=<a Groq model that supports tool calling>
+GROQ_API_KEY=<your Groq key> (fallback LLM_API_KEY)
+GROQ_MODEL=<a Groq model that supports tool calling> (fallback LLM_MODEL)
 ```
 
 Choose the model from Groq's current model list in the console; do not hard-code it. Free-tier limits are enforced per model and change over time, so:

@@ -102,7 +102,7 @@ A ~100-line Python app with 3 to 4 seeded bugs, 6 to 10 pytest tests (some faili
 User runs:  python main.py --repo sandbox_repo --task "Fix the failing tests"
 
 1. CodePilot checks the working tree is clean, creates branch codepilot/fix-<timestamp>
-2. Baseline: runs tests (e.g. 3 of 8 failing)
+2. Baseline: runs tests (e.g. 4 of 8 failing)
 3. LLM reads failure output, logs, metrics, then the suspect source files
 4. LLM calls apply_patch with a minimal fix
 5. CodePilot re-runs tests
@@ -151,7 +151,7 @@ User runs:  python main.py --repo sandbox_repo --task "Fix the failing tests"
 | Iterations to fix | 6 or fewer |
 | Test files modified by the agent | 0 |
 | Runs ending in a safe stop (never hanging or looping) | 100% |
-| Headline resume number | e.g. "3/8 to 8/8 passing in 4 iterations" |
+| Headline resume number | e.g. "4/8 to 8/8 passing in 4 iterations" |
 
 ## 11. Acceptance Criteria
 
