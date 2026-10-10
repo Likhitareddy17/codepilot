@@ -21,7 +21,14 @@ def test_stop_reason_values():
     assert StopReason.MAX_ITERATIONS == "MAX_ITERATIONS"
     assert StopReason.NO_PROGRESS == "NO_PROGRESS"
     assert StopReason.REGRESSION == "REGRESSION"
+    assert StopReason.REPEATED_REGRESSION == "REPEATED_REGRESSION"
     assert StopReason.LLM_UNAVAILABLE == "LLM_UNAVAILABLE"
+    assert StopReason.BAD_MODEL_OUTPUT == "BAD_MODEL_OUTPUT"
+    assert StopReason.PROTECTED_PATH_VIOLATION == "PROTECTED_PATH_VIOLATION"
+    assert StopReason.PROTECTED_PATH_NEEDED == "PROTECTED_PATH_NEEDED"
+    assert StopReason.INTERNAL_ERROR == "INTERNAL_ERROR"
+    assert StopReason.TOOL_LIMIT_EXCEEDED == "TOOL_LIMIT_EXCEEDED"
+    assert StopReason.OTHER == "OTHER"
 
 
 def test_tool_error_model_to_dict():
