@@ -57,50 +57,58 @@ Only two things leave the machine: LLM requests to Groq, and (later, opt-in) not
 
 ```text
 codepilot/
-├── main.py                  CLI entry point
 ├── codepilot/
+│   ├── __init__.py
+│   ├── cli.py               CLI entry point
 │   ├── config.py            Settings loaded from environment / CLI flags
-│   ├── state.py             Dataclasses and enums (see section 8)
-│   ├── controller.py        The agent loop, limits, stop conditions
-│   ├── llm.py               LLMClient interface + OpenAI-compatible (Groq) implementation
-│   ├── registry.py          ToolRegistry: name -> (function, JSON schema), argument validation
-│   ├── tools.py             The 9 tool functions
-│   ├── history.py           ResultStore (full tool results) + message history compression
-│   ├── schemas.py           JSON schemas for the tools
-│   ├── safety.py            Path resolution, protected paths, read denylist, env sanitising
+│   ├── errors.py            Defined error types
+│   ├── models.py            Typed domain models
+│   ├── state.py             Run state and iteration tracking
 │   ├── workspace.py         Create temp workspace, git init, branch, commit, export patch, cleanup
-│   ├── test_runner.py       Run pytest as a subprocess, parse results
-│   ├── prompts.py           System prompt and message builders
+│   ├── controller.py        The agent loop, limits, stop conditions
+│   ├── trace.py             Trace recording and output management
 │   ├── report.py            Write run_trace.json and report.md
-│   └── errors.py            Defined error types
+│   ├── prompts.py           System prompt and message builders
+│   ├── llm/
+│   │   ├── __init__.py
+│   │   ├── client.py        LLMClient interface + OpenAI-compatible (Groq) implementation
+│   │   └── fake.py          Offline FakeLLM for automated tests
+│   └── tools/
+│       ├── __init__.py
+│       ├── registry.py      ToolRegistry: name -> (function, JSON schema), argument validation
+│       ├── filesystem.py    File listing, reading, and patching tools
+│       ├── tests.py         Test execution tool
+│       ├── logs.py          Log reading tool
+│       ├── metrics.py       Metrics reading tool
+│       ├── patch.py         Patch application tool
+│       ├── git.py           Git diff tool
+│       └── history.py       Result retrieval tool and history management
 ├── sandbox_repo/            Demo project with seeded bugs (never modified in place)
 ├── runs/                    Output per run (git-ignored)
 ├── tests/
-│   ├── unit/
-│   └── e2e/
 ├── .github/workflows/ci.yml
-├── .env.example
 ├── requirements.txt
-└── README.md
+└── pyproject.toml
 ```
 
 ### Module responsibilities
 
 | Module | Owns | Depends on | Must NOT |
 |---|---|---|---|
-| `main.py` | Parse CLI args, call `Controller.run`, print the final summary | `config`, `controller` | Contain logic |
+| `cli.py` | Parse CLI args, call `Controller.run`, print the final summary | `config`, `controller` | Contain logic |
 | `config.py` | Single `Settings` object (limits, paths, provider settings) | stdlib, `python-dotenv` | Hold secrets in logs or repr |
+| `errors.py` | Defined error types | stdlib | Do I/O |
+| `models.py` | Typed domain models | stdlib | Do I/O |
 | `state.py` | `RunState`, `TestRunResult`, `PatchRecord`, `ToolResult`, `StopReason` | stdlib | Do I/O |
-| `controller.py` | Loop, iteration counting, stop conditions, final verification, calling `workspace` and `report` | everything below | Know how a specific tool works |
-| `llm.py` | Send messages + tool schemas, return text and/or tool calls, retry with backoff | `openai`, `config`, `errors` | Execute tools, touch files |
-| `registry.py` | Look up a tool, validate arguments against its schema, call it, wrap errors into `ToolResult` | `tools`, `schemas` | Call the LLM |
-| `tools.py` | The 9 operations | `safety`, `test_runner`, `workspace`, `history` | Contain LLM reasoning |
-| `history.py` | Store every full tool result (memory + disk); build compact structured summaries; decide which results in the message history are sent in full vs summarised; serve retrieval requests | `state`, `config` | Call the LLM, decide stop conditions |
-| `safety.py` | Decide whether a path may be read, written, or listed; build a sanitised environment for subprocesses | stdlib | Touch the network |
 | `workspace.py` | Everything Git and temp-folder related | `subprocess`, `shutil`, `tempfile` | Push, reset, rebase, force anything |
-| `test_runner.py` | Run pytest with a timeout; parse pass/fail counts and failing test ids | `subprocess`, `safety` | Edit files |
-| `prompts.py` | Static system prompt text; helpers to format observations | none | Call the LLM |
+| `controller.py` | Loop, iteration counting, stop conditions, final verification, calling `workspace` and `report` | everything below | Know how a specific tool works |
+| `trace.py` | Trace recording and persistence | `state` | Alter state |
 | `report.py` | Serialise state to `run_trace.json` and `report.md` | `state` | Alter state |
+| `prompts.py` | Static system prompt text; helpers to format observations | none | Call the LLM |
+| `llm/client.py` | Send messages + tool schemas, return text and/or tool calls, retry with backoff | `openai`, `config`, `errors` | Execute tools, touch files |
+| `llm/fake.py` | Offline FakeLLM implementation | `llm/client` | Touch the network |
+| `tools/registry.py` | Look up a tool, validate arguments against its schema, call it, wrap errors into `ToolResult` | `tools/*` | Call the LLM |
+| `tools/*.py` | The individual tool operations | `safety`, `test_runner`, `workspace`, `history` | Contain LLM reasoning |
 
 ---
 
