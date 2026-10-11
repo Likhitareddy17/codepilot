@@ -2,10 +2,20 @@
 
 import os
 import shutil
+import stat
 import subprocess
 import tempfile
 from pathlib import Path
 from typing import List, Optional
+
+
+def _rmtree_onerror(func, path, exc_info):
+    """Error handler for shutil.rmtree to handle Windows permission/readonly issues."""
+    try:
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    except Exception:
+        pass
 
 
 class Workspace:
@@ -55,6 +65,26 @@ class Workspace:
         self._run_git(["checkout", "-b", self.branch_name])
 
         return self.temp_dir
+
+    def cleanup(self, keep_workspace: bool = False) -> None:
+        """Clean up the temporary workspace unless keep_workspace is True."""
+        if not self.temp_dir:
+            return
+        if keep_workspace:
+            return
+        try:
+            if self.temp_dir.exists():
+                shutil.rmtree(self.temp_dir, onerror=_rmtree_onerror)
+        except Exception:
+            pass
+
+    def __enter__(self) -> "Workspace":
+        self.create()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb) -> None:
+        keep = getattr(self, "keep_workspace", False)
+        self.cleanup(keep_workspace=keep)
 
     def _run_git(self, args: List[str]) -> str:
         """Run a git command in the workspace directory."""
