@@ -37,3 +37,15 @@ class ProtectedPathError(ToolError):
     """Raised when an operation attempts to modify a protected path."""
 
     pass
+
+
+class WorkspaceError(CodePilotError):
+    """Raised for workspace creation, audit, commit or export problems."""
+
+    pass
+
+
+class GitError(WorkspaceError):
+    """Raised when a Git operation fails or is not permitted."""
+
+    pass

@@ -206,3 +206,19 @@ class FinalReportData:
             "iterations": self.iterations,
             "summary_text": self.summary_text,
         }
+
+
+@dataclass
+class AuditResult:
+    """Outcome of the final changed-file audit before a commit."""
+
+    ok: bool
+    changed_files: List[str] = field(default_factory=list)
+    violations: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "ok": self.ok,
+            "changed_files": self.changed_files,
+            "violations": self.violations,
+        }

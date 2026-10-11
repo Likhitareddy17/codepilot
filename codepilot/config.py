@@ -28,6 +28,8 @@ DEFAULT_PROTECTED_PATHS = [
     "codepilot/",
 ]
 
+DEFAULT_EDITABLE_EXTENSIONS = [".py"]
+
 DEFAULT_READ_DENYLIST = [
     ".env",
     ".env.*",
@@ -112,7 +114,7 @@ class Settings:
         default_factory=lambda: os.getenv("RUNS_DIR", "runs")
     )
     log_path: str = field(
-        default_factory=lambda: os.getenv("LOG_PATH", "app.log")
+        default_factory=lambda: os.getenv("LOG_PATH", "logs/app.log")
     )
     metrics_path: str = field(
         default_factory=lambda: os.getenv("METRICS_PATH", "metrics.json")
@@ -128,6 +130,10 @@ class Settings:
     )
     read_denylist: list[str] = field(
         default_factory=lambda: list(DEFAULT_READ_DENYLIST)
+    )
+
+    editable_extensions: list[str] = field(
+        default_factory=lambda: list(DEFAULT_EDITABLE_EXTENSIONS)
     )
 
     # CLI settings

@@ -58,3 +58,11 @@ def test_real_env_overrides_dotenv(monkeypatch):
     monkeypatch.setenv("MAX_ITERATIONS", "99")
     settings = Settings()
     assert settings.max_iterations == 99
+
+
+def test_settings_phase2_defaults(monkeypatch):
+    monkeypatch.delenv("LOG_PATH", raising=False)
+    settings = Settings()
+    assert settings.editable_extensions == [".py"]
+    assert settings.log_path == "logs/app.log"
+    assert settings.metrics_path == "metrics.json"
