@@ -18,9 +18,9 @@ import tempfile
 from pathlib import Path
 from typing import Iterable, List, Optional, Sequence, Tuple
 
-from codepilot.errors import GitError, WorkspaceError
+from codepilot.errors import GitError, GitTimeoutError, WorkspaceError
 from codepilot.models import AuditResult, GitResult
-from codepilot.safety import is_denied, is_editable, is_protected, sanitized_env
+from codepilot.safety import is_denied, is_editable, is_protected, is_within, sanitized_env
 
 logger = logging.getLogger("codepilot.workspace")
 
@@ -54,13 +54,6 @@ def _handle_remove_error(func, path, _exc) -> None:
         func(path)
     except OSError:
         pass
-
-
-def _is_within(child: Path, parent: Path) -> bool:
-    """True if ``child`` is ``parent`` or inside it (case-insensitive on Windows)."""
-    return Path(os.path.normcase(str(child))).is_relative_to(
-        Path(os.path.normcase(str(parent)))
-    )
 
 
 class Workspace:
@@ -177,7 +170,7 @@ class Workspace:
                 timeout=self.timeout_s,
             )
         except subprocess.TimeoutExpired as exc:
-            raise GitError(f"git {args[0]} timed out after {self.timeout_s}s") from exc
+            raise GitTimeoutError(f"git {args[0]} timed out after {self.timeout_s}s") from exc
         except OSError as exc:
             raise GitError(f"git {args[0]} could not run: {exc}") from exc
         if proc.returncode != 0:
@@ -305,7 +298,7 @@ class Workspace:
         """Write the committed fix (baseline..HEAD) to ``dest`` outside the workspace."""
         baseline = self._require_baseline()
         dest_path = Path(dest).resolve()
-        if self.temp_dir is not None and _is_within(dest_path, self.temp_dir.resolve()):
+        if self.temp_dir is not None and is_within(dest_path, self.temp_dir.resolve()):
             raise WorkspaceError("The patch must be written outside the workspace.")
         proc = self._git_raw(
             ["diff", "--no-color", "--no-ext-diff", "--no-textconv",

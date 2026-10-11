@@ -94,6 +94,29 @@ class Settings:
         )
     )
 
+    # Tool limits (TOOLS.md section 2.7)
+    max_arg_chars: int = field(
+        default_factory=lambda: int(os.getenv("MAX_ARG_CHARS", "20000"))
+    )
+    list_max_depth: int = field(
+        default_factory=lambda: int(os.getenv("LIST_MAX_DEPTH", "3"))
+    )
+    max_list_entries: int = field(
+        default_factory=lambda: int(os.getenv("MAX_LIST_ENTRIES", "200"))
+    )
+    max_read_lines: int = field(
+        default_factory=lambda: int(os.getenv("MAX_READ_LINES", "400"))
+    )
+    max_search_results: int = field(
+        default_factory=lambda: int(os.getenv("MAX_SEARCH_RESULTS", "50"))
+    )
+    max_search_line_chars: int = field(
+        default_factory=lambda: int(os.getenv("MAX_SEARCH_LINE_CHARS", "200"))
+    )
+    max_log_lines: int = field(
+        default_factory=lambda: int(os.getenv("MAX_LOG_LINES", "200"))
+    )
+
     # Context / history limits (HISTORY_KEEP_RECENT_RESULTS defaults to 3)
     history_keep_recent_results: int = field(
         default_factory=lambda: int(

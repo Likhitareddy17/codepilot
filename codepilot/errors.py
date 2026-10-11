@@ -49,3 +49,23 @@ class GitError(WorkspaceError):
     """Raised when a Git operation fails or is not permitted."""
 
     pass
+
+
+class ToolFailure(ToolError):
+    """A tool refused or failed in a way the LLM can act on.
+
+    Carries a machine-checkable ``code`` (see TOOLS.md section 2.2) and a
+    ``message`` written for the model. The registry turns it into a
+    ``ToolResult`` with ``ok=False``; it never reaches the controller loop.
+    """
+
+    def __init__(self, code: str, message: str) -> None:
+        super().__init__(f"{code}: {message}")
+        self.code = code
+        self.message = message
+
+
+class GitTimeoutError(GitError):
+    """Raised when a Git command exceeds its timeout."""
+
+    pass
