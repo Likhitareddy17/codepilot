@@ -20,6 +20,7 @@ from codepilot.config import Settings
 from codepilot.models import PatchRecord
 
 if TYPE_CHECKING:
+    from codepilot.tools.history import ResultStore
     from codepilot.workspace import Workspace
 
 ToolOutput = Tuple[Dict[str, Any], bool]
@@ -38,6 +39,7 @@ class ToolContext:
     patches: List[PatchRecord] = field(default_factory=list)
     undo_stack: List[Tuple[PatchRecord, bytes]] = field(default_factory=list)
     run_dir: Optional[Path] = None  # runs/<run_id>/, outside the workspace
+    history: Optional["ResultStore"] = None  # every result is stored here by the registry
 
     def __post_init__(self) -> None:
         self.root = Path(os.path.realpath(self.root))

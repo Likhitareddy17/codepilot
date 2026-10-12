@@ -7,6 +7,7 @@ import pytest
 
 from codepilot.config import Settings
 from codepilot.tools import ToolContext
+from codepilot.tools.history import ResultStore
 from codepilot.tools.registry import build_default_registry
 
 
@@ -44,6 +45,8 @@ def settings() -> Settings:
         max_log_lines=200,
         command_timeout_s=10,
         max_patch_attempts_per_file=3,
+        history_keep_recent_results=3,
+        max_result_retrievals_per_run=10,
         log_path="logs/app.log",
         metrics_path="metrics.json",
     )
@@ -91,7 +94,8 @@ def tiny_repo(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def ctx(tiny_repo: Path, settings: Settings) -> ToolContext:
-    return ToolContext(root=tiny_repo, settings=settings, run_dir=tiny_repo.parent / "runs" / "t1")
+    run_dir = tiny_repo.parent / "runs" / "t1"
+    return ToolContext(root=tiny_repo, settings=settings, run_dir=run_dir, history=ResultStore(run_dir, settings))
 
 
 @pytest.fixture

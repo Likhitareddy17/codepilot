@@ -16,6 +16,7 @@ from codepilot.models import ToolErrorModel, ToolResult
 from codepilot.tools import ToolContext, ToolSpec, json_len
 from codepilot.tools.filesystem import LIST_FILES, READ_FILE, SEARCH_CODE
 from codepilot.tools.git import GIT_DIFF
+from codepilot.tools.history import GET_TOOL_RESULT
 from codepilot.tools.logs import READ_LOGS
 from codepilot.tools.metrics import READ_METRICS
 from codepilot.tools.patch import APPLY_PATCH
@@ -125,8 +126,15 @@ class ToolRegistry:
         return f"c{self._counter:03d}"
 
     def execute(self, name: Any, args: Any) -> ToolResult:
-        """Run one tool call. Never raises; failures become ``ok=False`` results."""
+        """Run one tool call and store its full result. Never raises."""
         call_id = self.next_call_id()
+        result = self._run(call_id, name, args)
+        if self.ctx.history is not None:
+            self.ctx.history.add(call_id, name if isinstance(name, str) else repr(name), args, result,
+                                 iteration=self.ctx.iteration)
+        return result
+
+    def _run(self, call_id: str, name: Any, args: Any) -> ToolResult:
 
         def fail(code: str, message: str) -> ToolResult:
             return ToolResult(call_id=call_id, ok=False, data={},
@@ -158,9 +166,9 @@ class ToolRegistry:
 def build_default_registry(ctx: ToolContext) -> ToolRegistry:
     """Registry with every tool implemented so far.
 
-    ``get_tool_result`` is registered by a later task (history).
+    All nine approved tools are registered.
     """
     registry = ToolRegistry(ctx)
-    for spec in (LIST_FILES, READ_FILE, SEARCH_CODE, RUN_TESTS, READ_LOGS, READ_METRICS, APPLY_PATCH, GIT_DIFF):
+    for spec in (LIST_FILES, READ_FILE, SEARCH_CODE, RUN_TESTS, READ_LOGS, READ_METRICS, APPLY_PATCH, GIT_DIFF, GET_TOOL_RESULT):
         registry.register(spec)
     return registry

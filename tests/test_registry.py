@@ -15,7 +15,7 @@ def error_code(result) -> str:
 def test_default_registry_exposes_only_implemented_approved_tools(registry):
     assert registry.tool_names() == [
         "list_files", "read_file", "search_code", "run_tests", "read_logs",
-        "read_metrics", "apply_patch", "git_diff",
+        "read_metrics", "apply_patch", "git_diff", "get_tool_result",
     ]
     assert set(registry.tool_names()) <= set(APPROVED_TOOLS)
     assert len(APPROVED_TOOLS) == 9
