@@ -64,6 +64,8 @@ class ToolCall:
     id: str
     name: str
     arguments: Dict[str, Any]
+    malformed: bool = False      # the arguments were not a valid JSON object
+    raw_arguments: str = ""      # the original argument text, kept for the error message
 
 
 @dataclass
