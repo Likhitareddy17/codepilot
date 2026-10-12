@@ -2,7 +2,9 @@
 
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Union
-from codepilot.models import StopReason, TestRunResult, PatchRecord, ToolRecord, ToolCall
+from codepilot.models import (
+    PatchRecord, RunComparison, StopReason, TestRunResult, ToolCall, ToolRecord,
+)
 
 
 @dataclass
@@ -56,3 +58,40 @@ class RunState:
             "commit_state": self.commit_state,
             "notes": self.notes,
         }
+
+
+def compare_test_runs(
+    baseline: TestRunResult,
+    previous: Optional[TestRunResult],
+    current: TestRunResult,
+) -> RunComparison:
+    """Compare two full-suite runs by test id (TASK-025).
+
+    ``previous`` is the run before the latest patch (``None`` means the
+    baseline). A regression is a test that passed at baseline and fails now,
+    or a drop in passing tests below the baseline. A lower failing count never
+    hides either of them.
+    """
+    prior = previous if previous is not None else baseline
+    for run in (baseline, prior, current):
+        if run.scope != "full":
+            raise ValueError("Comparison requires full-suite runs, not targeted runs.")
+
+    base_ids, prior_ids, now_ids = set(baseline.failing_ids), set(prior.failing_ids), set(current.failing_ids)
+    regressed = sorted(now_ids - base_ids)
+    passed_delta = current.passed - baseline.passed
+    return RunComparison(
+        newly_failing=sorted(now_ids - prior_ids),
+        still_failing=sorted(now_ids & prior_ids),
+        fixed=sorted(prior_ids - now_ids),
+        regressed=regressed,
+        fixed_since_baseline=sorted(base_ids - now_ids),
+        remained_fixed=sorted((base_ids - prior_ids) - now_ids),
+        reopened=sorted((now_ids & base_ids) - prior_ids),
+        passed_delta_vs_baseline=passed_delta,
+        same_failing_set=now_ids == prior_ids,
+        same_main_error=current.main_error == prior.main_error,
+        is_regression=bool(regressed) or passed_delta < 0,
+        equal_count_regression=bool(regressed) and len(now_ids) <= len(prior_ids),
+        all_passing=current.all_passing,
+    )

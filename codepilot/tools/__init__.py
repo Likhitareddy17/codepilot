@@ -37,6 +37,7 @@ class ToolContext:
     patch_attempts: Dict[str, int] = field(default_factory=dict)
     patches: List[PatchRecord] = field(default_factory=list)
     undo_stack: List[Tuple[PatchRecord, bytes]] = field(default_factory=list)
+    run_dir: Optional[Path] = None  # runs/<run_id>/, outside the workspace
 
     def __post_init__(self) -> None:
         self.root = Path(os.path.realpath(self.root))

@@ -401,7 +401,7 @@ def test_export_patch_applies_to_a_fresh_copy_and_survives_cleanup(ws, source_re
 
     fresh = tmp_path / "fresh"
     shutil.copytree(source_repo, fresh)
-    subprocess.run(["git", "apply", str(patch)], cwd=fresh, check=True)
+    subprocess.run(["git", "-c", "core.autocrlf=false", "apply", str(patch)], cwd=fresh, check=True)
     assert (fresh / "app" / "calc.py").read_bytes() == (ws.temp_dir / "app" / "calc.py").read_bytes()
     assert (fresh / "app" / "crlf.py").read_bytes() == b"x = 1\r\ny = 2\r\n"
 
@@ -415,7 +415,7 @@ def test_export_patch_preserves_crlf_files(ws, source_repo, tmp_path):
     patch = ws.export_patch(str(tmp_path / "fix.patch"))
     fresh = tmp_path / "fresh"
     shutil.copytree(source_repo, fresh)
-    subprocess.run(["git", "apply", str(patch)], cwd=fresh, check=True)
+    subprocess.run(["git", "-c", "core.autocrlf=false", "apply", str(patch)], cwd=fresh, check=True)
     assert (fresh / "app" / "crlf.py").read_bytes() == b"x = 100\r\ny = 2\r\n"
 
 

@@ -19,6 +19,7 @@ from codepilot.tools.git import GIT_DIFF
 from codepilot.tools.logs import READ_LOGS
 from codepilot.tools.metrics import READ_METRICS
 from codepilot.tools.patch import APPLY_PATCH
+from codepilot.tools.tests import RUN_TESTS
 
 APPROVED_TOOLS = (
     "list_files", "read_file", "search_code", "run_tests", "read_logs",
@@ -145,17 +146,21 @@ class ToolRegistry:
 
         budget = self.ctx.budget
         if json_len(data) > budget:  # safety net; tools normally fit themselves
-            preview = json.dumps(data, ensure_ascii=False)[: max(budget - 60, 0)]
-            data, truncated = {"preview": preview}, True
+            raw = json.dumps(data, ensure_ascii=False)
+            size = max(budget - 60, 0)
+            data, truncated = {"preview": raw[:size]}, True
+            while size > 0 and json_len(data) > budget:  # escaping can inflate the text
+                size = size * 3 // 4
+                data = {"preview": raw[:size]}
         return ToolResult(call_id=call_id, ok=True, data=data, truncated=truncated)
 
 
 def build_default_registry(ctx: ToolContext) -> ToolRegistry:
     """Registry with every tool implemented so far.
 
-    ``run_tests`` and ``get_tool_result`` are registered by later tasks.
+    ``get_tool_result`` is registered by a later task (history).
     """
     registry = ToolRegistry(ctx)
-    for spec in (LIST_FILES, READ_FILE, SEARCH_CODE, READ_LOGS, READ_METRICS, APPLY_PATCH, GIT_DIFF):
+    for spec in (LIST_FILES, READ_FILE, SEARCH_CODE, RUN_TESTS, READ_LOGS, READ_METRICS, APPLY_PATCH, GIT_DIFF):
         registry.register(spec)
     return registry

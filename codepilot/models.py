@@ -106,6 +106,25 @@ class TestRunResult:
     duration_s: float = 0.0
     timed_out: bool = False
     output_excerpt: str = ""
+    skipped: int = 0
+    scope: str = "full"  # "full" (no target) or "targeted"
+    main_error: Optional[str] = None
+    failure_messages: Dict[str, str] = field(default_factory=dict)
+
+    @property
+    def all_passing(self) -> bool:
+        """True only for a clean run that actually executed passing tests.
+
+        Exit code 5 (nothing collected), zero passed tests and timeouts never
+        count as passing (TESTING.md section 14).
+        """
+        return (
+            self.exit_code == 0
+            and not self.timed_out
+            and self.failed == 0
+            and self.errors == 0
+            and self.passed > 0
+        )
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -117,6 +136,89 @@ class TestRunResult:
             "duration_s": self.duration_s,
             "timed_out": self.timed_out,
             "output_excerpt": self.output_excerpt,
+            "skipped": self.skipped,
+            "scope": self.scope,
+            "main_error": self.main_error,
+            "failure_messages": self.failure_messages,
+        }
+
+
+@dataclass
+class PytestOutcome:
+    """One pytest execution: the parsed result plus the raw captured evidence."""
+
+    result: TestRunResult
+    stdout: str = ""
+    stderr: str = ""
+    junit_path: Optional[str] = None
+    command: List[str] = field(default_factory=list)
+
+
+@dataclass
+class RunComparison:
+    """Identity-based comparison of full-suite runs (TASK-025).
+
+    Decisions are made on test ids, never on counts alone.
+    """
+
+    newly_failing: List[str] = field(default_factory=list)   # failing now, not in the previous run
+    still_failing: List[str] = field(default_factory=list)   # failing in both runs
+    fixed: List[str] = field(default_factory=list)           # failing before, passing now
+    regressed: List[str] = field(default_factory=list)       # failing now, passing at baseline
+    fixed_since_baseline: List[str] = field(default_factory=list)
+    remained_fixed: List[str] = field(default_factory=list)  # fixed earlier and still passing
+    reopened: List[str] = field(default_factory=list)        # fixed earlier, failing again
+    passed_delta_vs_baseline: int = 0
+    same_failing_set: bool = False
+    same_main_error: bool = False
+    is_regression: bool = False
+    equal_count_regression: bool = False  # a regression hidden by an equal or lower failing count
+    all_passing: bool = False
+
+    def to_dict(self) -> Dict[str, Any]:
+        return dict(self.__dict__)
+
+
+@dataclass
+class BaselineEvidence:
+    """Outcome of the baseline full-suite run at the start of a run (TASK-026)."""
+
+    NEEDS_REPAIR = "NEEDS_REPAIR"
+    NO_FAILURES = "NO_FAILURES"
+    UNUSABLE = "UNUSABLE"
+
+    status: str
+    reason: str
+    outcome: PytestOutcome
+
+    @property
+    def result(self) -> TestRunResult:
+        return self.outcome.result
+
+    @property
+    def failing_ids(self) -> List[str]:
+        return list(self.outcome.result.failing_ids)
+
+    @property
+    def main_error(self) -> Optional[str]:
+        return self.outcome.result.main_error
+
+    @property
+    def needs_repair(self) -> bool:
+        return self.status == self.NEEDS_REPAIR
+
+    @property
+    def stop_reason(self) -> Optional[StopReason]:
+        """``NO_FAILURES`` when nothing is broken; otherwise None (keep going or fail)."""
+        return StopReason.NO_FAILURES if self.status == self.NO_FAILURES else None
+
+    def to_dict(self) -> Dict[str, Any]:
+        return {
+            "status": self.status,
+            "reason": self.reason,
+            "failing_ids": self.failing_ids,
+            "main_error": self.main_error,
+            "result": self.outcome.result.to_dict(),
         }
 
 

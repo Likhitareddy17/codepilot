@@ -16,6 +16,19 @@ def write(path: Path, data) -> None:
     path.write_bytes(data.encode("utf-8") if isinstance(data, str) else data)
 
 
+PASSING_TESTS = "def test_one():\n    assert True\n\n\ndef test_two():\n    assert 1 + 1 == 2\n"
+FAILING_TESTS = "def test_good():\n    assert True\n\n\ndef test_bad():\n    assert 3 == 4\n"
+
+
+def make_suite(base: Path, **files: str) -> Path:
+    """Create a tiny pytest repository: ``pytest.ini`` plus ``tests/<name>.py`` files."""
+    repo = base / "suite"
+    write(repo / "pytest.ini", "[pytest]\n")
+    for name, source in files.items():
+        write(repo / "tests" / f"{name}.py", source)
+    return repo
+
+
 @pytest.fixture
 def settings() -> Settings:
     """Deterministic settings, independent of the developer's environment."""
@@ -78,7 +91,7 @@ def tiny_repo(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def ctx(tiny_repo: Path, settings: Settings) -> ToolContext:
-    return ToolContext(root=tiny_repo, settings=settings)
+    return ToolContext(root=tiny_repo, settings=settings, run_dir=tiny_repo.parent / "runs" / "t1")
 
 
 @pytest.fixture
