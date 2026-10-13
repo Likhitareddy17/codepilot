@@ -117,6 +117,14 @@ class Settings:
         default_factory=lambda: int(os.getenv("MAX_LOG_LINES", "200"))
     )
 
+    # Controller safety thresholds
+    max_bad_model_outputs: int = field(
+        default_factory=lambda: int(os.getenv("MAX_BAD_MODEL_OUTPUTS", "3"))
+    )
+    max_protected_path_attempts: int = field(
+        default_factory=lambda: int(os.getenv("MAX_PROTECTED_PATH_ATTEMPTS", "2"))
+    )
+
     # Context / history limits (HISTORY_KEEP_RECENT_RESULTS defaults to 3)
     history_keep_recent_results: int = field(
         default_factory=lambda: int(
