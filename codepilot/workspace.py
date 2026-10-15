@@ -95,22 +95,38 @@ class Workspace:
                 dirs_exist_ok=True,
             )
             self._run_git(["init"])
-            self._run_git(["config", "user.name", "CodePilot Agent"])
-            self._run_git(["config", "user.email", "agent@codepilot.local"])
-            # Set before the first `git add` so line endings are stored untouched
-            # and diffs never show CRLF/LF noise (TOOLS.md section 10).
-            self._run_git(["config", "core.autocrlf", "false"])
-            self._run_git(["config", "commit.gpgsign", "false"])
+            self._write_local_config()
             self._run_git(["add", "-A"])
             self._run_git(["commit", "--allow-empty", "--no-verify", "-m", "Initial baseline commit"])
-            self.baseline_commit = self._run_git(["rev-parse", "HEAD"])
-            self.default_branch = self._run_git(["branch", "--show-current"])
+            # One launch for both answers: the commit hash, then the branch name.
+            head, branch = self._run_git(["rev-parse", "HEAD", "--abbrev-ref", "HEAD"]).splitlines()
+            self.baseline_commit, self.default_branch = head, branch
             self._run_git(["checkout", "-b", self.branch_name])
         except BaseException:
             self.cleanup(keep_workspace=False)
             self.temp_dir = None
             raise
         return self.temp_dir
+
+    def _write_local_config(self) -> None:
+        """Write the repository-local Git settings straight into ``.git/config``.
+
+        This replaces four ``git config`` launches (slow on Windows). Settings are
+        local only, never global. ``core.autocrlf=false`` must exist before the
+        first ``git add`` so line endings are stored untouched and diffs never
+        show CRLF/LF noise (TOOLS.md section 10).
+        """
+        assert self.temp_dir is not None
+        config = self.temp_dir / ".git" / "config"
+        if not config.is_file():
+            raise WorkspaceError("git init did not create .git/config.")
+        lines = [
+            "[user]", "\tname = CodePilot Agent", "\temail = agent@codepilot.local",
+            "[core]", "\tautocrlf = false",
+            "[commit]", "\tgpgsign = false",
+        ]
+        with config.open("ab") as handle:
+            handle.write(("\n".join(lines) + "\n").encode("utf-8"))
 
     def _ignore(self, directory: str, names: List[str]) -> List[str]:
         """copytree callback: skip caches, venvs, run output and secret files."""
@@ -228,7 +244,8 @@ class Workspace:
         """
         extensions = list(editable_extensions) if editable_extensions else None
         violations: List[str] = []
-        for status, path in self._change_entries():
+        entries = self._change_entries()  # read once: every call costs two Git launches
+        for status, path in entries:
             protected = is_protected(path)
             if status in ("A", "?"):
                 tag = " [protected path]" if protected else ""
@@ -245,7 +262,7 @@ class Workspace:
                 violations.append(f"unsupported change type {status}: {path}")
         return AuditResult(
             ok=not violations,
-            changed_files=self.changed_files(),
+            changed_files=sorted({path for _, path in entries}),
             violations=sorted(violations),
         )
 

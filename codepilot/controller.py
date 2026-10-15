@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional
 
@@ -32,6 +33,7 @@ from codepilot.workspace import Workspace
 MAX_REGRESSIONS = 2          # the second regression stops the run (ARCHITECTURE.md section 6)
 NO_PROGRESS_THRESHOLD = 2    # consecutive patches that change nothing (ADR)
 BAD_OUTPUT_CODES = {"UNKNOWN_TOOL", "INVALID_ARGUMENTS"}
+MAX_EVENT_TEXT_CHARS = 500   # model text kept in the trace (the report quotes it as unverified)
 SuiteRunner = Callable[[Path, Path, Settings, Optional[str]], PytestOutcome]
 
 
@@ -177,7 +179,8 @@ class Controller:
         except LLMError as exc:
             raise _Stop(StopReason.INTERNAL_ERROR, f"The LLM request failed: {exc}") from None
         self._event("llm_response", tool_calls=[c.name for c in response.tool_calls],
-                    has_text=bool(response.text), usage=response.usage)
+                    has_text=bool(response.text), usage=response.usage,
+                    text=(response.text or "")[:MAX_EVENT_TEXT_CHARS])
         return response
 
     # ----------------------------------------------------------- tool calls
@@ -363,7 +366,10 @@ class Controller:
     # --------------------------------------------------------------- finish
 
     def _event(self, kind: str, **data: Any) -> None:
-        self.events.append({"event": kind, "iteration": self.state.iteration, **data})
+        self.events.append({
+            "event": kind, "iteration": self.state.iteration,
+            "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"), **data,
+        })
 
     def _finish(self, reason: StopReason, summary: str, duration: float) -> RunResult:
         s = self.state

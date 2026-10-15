@@ -111,10 +111,12 @@ def symlink_or_skip(link: Path, target: Path) -> None:
         pytest.skip("symlinks are not available in this environment")
 
 # --- slow tests -----------------------------------------------------------
-# Tests that start pytest or Git processes are marked "slow" automatically.
+# Tests that start pytest or Git processes are marked "slow" automatically
+# (by module, by workspace fixture, or explicitly with @pytest.mark.slow).
 # Quick run:  python -m pytest -m "not slow"      Full run: python -m pytest
 
-SLOW_MODULES = {"test_test_runner.py", "test_phase4_decisions.py"}
+SLOW_MODULES = {"test_test_runner.py", "test_phase4_decisions.py", "test_workspace.py", "test_tools_git.py"}
+SLOW_FIXTURES = {"run", "ws", "git_registry"}   # fixtures that create a real Git workspace
 SLOW_NAMES = (
     "capture_baseline", "end_to_end", "regex", "test_workspace_creation", "test_workspace_cleanup_default",
     "test_workspace_keep_workspace", "test_workspace_cleanup_after_failure",
@@ -127,5 +129,9 @@ def pytest_configure(config):
 
 def pytest_collection_modifyitems(config, items):
     for item in items:
-        if Path(str(item.fspath)).name in SLOW_MODULES or any(name in item.name for name in SLOW_NAMES):
+        if (
+            Path(str(item.fspath)).name in SLOW_MODULES
+            or SLOW_FIXTURES & set(getattr(item, "fixturenames", ()))
+            or any(name in item.name for name in SLOW_NAMES)
+        ):
             item.add_marker(pytest.mark.slow)
