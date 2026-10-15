@@ -126,9 +126,15 @@ SLOW_NAMES = (
 
 def pytest_configure(config):
     config.addinivalue_line("markers", "slow: starts pytest or Git subprocesses; skip with -m 'not slow'")
+    config.addinivalue_line("markers", "live: calls the real Groq model; runs only with -m live (never in CI)")
 
 
 def pytest_collection_modifyitems(config, items):
+    if "live" not in (config.getoption("markexpr") or ""):          # live tests need an explicit -m live
+        kept = [item for item in items if "live" not in item.keywords]
+        if len(kept) != len(items):
+            config.hook.pytest_deselected(items=[i for i in items if i not in kept])
+            items[:] = kept
     for item in items:
         if (
             Path(str(item.fspath)).name in SLOW_MODULES

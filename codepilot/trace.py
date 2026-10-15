@@ -18,6 +18,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Dict, Iterable, List, Optional, Sequence
 
 from codepilot.models import StopReason, TestRunResult
+from codepilot.prompts import PROMPT_VERSION
 
 if TYPE_CHECKING:
     from codepilot.controller import RunResult
@@ -198,7 +199,8 @@ def build_trace(result: "RunResult", info: RunInfo, run_dir: Optional[Path] = No
         "schema_version": SCHEMA_VERSION,
         "run": {
             "run_id": state.run_id, "task": state.task, "repository": info.repository,
-            "branch": state.branch, "model": info.model, "max_iterations": info.max_iterations,
+            "branch": state.branch, "model": info.model, "prompt_version": PROMPT_VERSION,
+            "max_iterations": info.max_iterations,
             "started_at": info.started_at, "finished_at": info.finished_at, "duration_s": result.duration_s,
         },
         "outcome": {

@@ -39,6 +39,7 @@ def test_trace_has_the_documented_sections():
     assert {"schema_version", "run", "outcome", "baseline", "final_tests", "tool_calls", "patches", "events",
             "cleanup", "artifacts"} <= set(trace)
     assert trace["run"]["run_id"] == "20261015-101500" and trace["run"]["model"] == "m"
+    assert trace["run"]["prompt_version"]
     assert trace["outcome"]["success"] is True and trace["outcome"]["commit"].startswith("a1b2c3")
     assert trace["baseline"]["failing_ids"] and trace["final_tests"]["passed"] == 4
     assert trace["cleanup"] == {"status": "deleted", "workspace_kept": None}
