@@ -1,0 +1,17 @@
+{
+  "service": "sandbox-app",
+  "window": "2026-10-08T10:00:00Z/2026-10-08T10:15:00Z",
+  "requests": 100,
+  "errors": 18,
+  "error_rate": 0.18,
+  "latency_ms": {
+    "p50": 42,
+    "p95": 130,
+    "p99": 240
+  },
+  "operations": {
+    "pagination": {"error_rate": 0.10},
+    "orders": {"error_rate": 0.20, "tax_lookup_failures": 5},
+    "pricing": {"error_rate": 0.15}
+  }
+}

@@ -1,0 +1,17 @@
+2026-10-08 10:01:02 INFO pagination page=1 page_size=2 total_items=5 returned=2
+2026-10-08 10:01:41 INFO pricing apply_discount price=120.0 percentage=0 final_price=120.0
+2026-10-08 10:03:17 INFO pagination page=2 page_size=2 total_items=5 returned=1
+2026-10-08 10:03:18 WARNING pagination page=3 page_size=2 total_items=5 returned=0 expected_at_least=1
+2026-10-08 10:07:25 INFO pricing apply_discount price=200.0 percentage=10 final_price=190.0
+2026-10-08 10:09:50 INFO order_service Order lookup ok order_id=101
+2026-10-08 10:14:03 ERROR order_service Order lookup failed for order_id=404
+Traceback (most recent call last):
+  File "app/orders.py", line 24, in get_order_total
+    return order["total"]
+TypeError: 'NoneType' object is not subscriptable
+2026-10-08 10:14:10 WARNING order_service Tax rate lookup failed for region=us, defaulting to 0
+2026-10-08 10:14:11 WARNING order_service Tax rate lookup failed for region=us, defaulting to 0
+2026-10-08 10:14:12 WARNING order_service Tax rate lookup failed for region=us, defaulting to 0
+2026-10-08 10:14:13 WARNING order_service Tax rate lookup failed for region=us, defaulting to 0
+2026-10-08 10:14:14 WARNING order_service Tax rate lookup failed for region=us, defaulting to 0
+2026-10-08 10:14:30 INFO order_service Order lookup ok order_id=102

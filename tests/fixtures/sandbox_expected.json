@@ -1,0 +1,72 @@
+{
+  "description": "Single source of truth for the canonical sandbox (sandbox_repo/). Tests read these values instead of hard-coding them.",
+  "files": [
+    "app/__init__.py", "app/pagination.py", "app/orders.py", "app/pricing.py",
+    "tests/test_pagination.py", "tests/test_orders.py", "tests/test_pricing.py",
+    "logs/app.log", "metrics.json"
+  ],
+  "baseline": {
+    "total": 8,
+    "passed": 4,
+    "failed": 4,
+    "passing_ids": [
+      "tests/test_orders.py::test_existing_order",
+      "tests/test_pagination.py::test_page_beyond_the_end_is_empty",
+      "tests/test_pagination.py::test_invalid_page_arguments_are_rejected",
+      "tests/test_pricing.py::test_zero_discount"
+    ],
+    "failing_ids": [
+      "tests/test_orders.py::test_missing_order",
+      "tests/test_orders.py::test_order_total",
+      "tests/test_pagination.py::test_second_page",
+      "tests/test_pricing.py::test_percentage_discount"
+    ]
+  },
+  "bounds": {"tests": [6, 10], "app_code_lines": [60, 150]},
+  "bugs": {
+    "BUG-01": {
+      "title": "Pagination off-by-one",
+      "failing_ids": ["tests/test_pagination.py::test_second_page"],
+      "fix": {"path": "app/pagination.py", "old": "start = page * page_size", "new": "start = (page - 1) * page_size"},
+      "evidence": {"log": "optional", "metrics": "optional"}
+    },
+    "BUG-02": {
+      "title": "Missing None handling",
+      "failing_ids": ["tests/test_orders.py::test_missing_order"],
+      "fix": {"path": "app/orders.py", "old": "return order[\"total\"]", "new": "return order[\"total\"] if order is not None else None"},
+      "evidence": {"log": "required", "metrics": "optional"}
+    },
+    "BUG-03": {
+      "title": "Incorrect discount calculation",
+      "failing_ids": ["tests/test_pricing.py::test_percentage_discount"],
+      "fix": {"path": "app/pricing.py", "old": "discount = percentage", "new": "discount = price * percentage / 100"},
+      "evidence": {"log": "optional", "metrics": "required"}
+    },
+    "BUG-04": {
+      "title": "Case-sensitive tax region lookup (cross-evidence)",
+      "failing_ids": ["tests/test_orders.py::test_order_total"],
+      "fix": {"path": "app/orders.py", "old": "region = order.get(\"region\", \"US\")", "new": "region = order.get(\"region\", \"US\").upper()"},
+      "evidence": {"log": "required", "metrics": "required"}
+    }
+  },
+  "regression_patch": {
+    "description": "Breaks a passing test without fixing anything: find_order never finds an order.",
+    "path": "app/orders.py",
+    "old": "return _ORDERS.get(order_id)",
+    "new": "return _ORDERS.get(str(order_id))",
+    "newly_failing_ids": ["tests/test_orders.py::test_existing_order"]
+  },
+  "noop_patches": [
+    {"path": "app/pricing.py", "old": "discount = percentage", "new": "discount = percentage * 1"},
+    {"path": "app/pagination.py", "old": "start = page * page_size", "new": "start = page_size * page"}
+  ],
+  "evidence": {
+    "log": {
+      "tax_warning_text": "Tax rate lookup failed for region=us, defaulting to 0",
+      "tax_warning_count": 5,
+      "traceback_exception": "TypeError: 'NoneType' object is not subscriptable",
+      "traceback_file": "app/orders.py"
+    },
+    "metrics": {"orders_tax_lookup_failures": 5, "requests": 100, "errors": 18}
+  }
+}

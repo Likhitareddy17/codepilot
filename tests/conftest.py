@@ -9,6 +9,7 @@ from codepilot.config import Settings
 from codepilot.tools import ToolContext
 from codepilot.tools.history import ResultStore
 from codepilot.tools.registry import build_default_registry
+from support_sandbox import copy_sandbox, load_manifest
 
 
 def write(path: Path, data) -> None:
@@ -135,3 +136,15 @@ def pytest_collection_modifyitems(config, items):
             or any(name in item.name for name in SLOW_NAMES)
         ):
             item.add_marker(pytest.mark.slow)
+
+
+@pytest.fixture
+def sandbox_expected() -> dict:
+    """The sandbox manifest: counts, test ids, reference fixes (TESTING.md section 4.1)."""
+    return load_manifest()
+
+
+@pytest.fixture
+def sandbox_copy(tmp_path: Path) -> Path:
+    """A private copy of the canonical sandbox; the canonical one is never touched."""
+    return copy_sandbox(tmp_path / "sandbox")

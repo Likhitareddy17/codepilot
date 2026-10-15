@@ -19,6 +19,8 @@ codepilot = "codepilot.cli:main"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]
+# The canonical sandbox has intentionally failing tests; never collect it from the project root.
+norecursedirs = ["sandbox_repo", ".*", "build", "dist", "node_modules", "venv", "runs"]
 
 [tool.setuptools.packages.find]
 include = ["codepilot*"]
