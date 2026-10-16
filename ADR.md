@@ -264,7 +264,7 @@ No-progress detection therefore operates independently of the iteration limit.
 
 ### Consequence
 
-A run may stop before reaching six iterations.
+A run may stop before reaching the iteration limit.
 
 ---
 
@@ -708,6 +708,30 @@ The MVP deliberately does less, but its behavior can be demonstrated and verifie
 
 ---
 
+## ADR-027 — Iteration Budget of 15
+
+**Status:** Accepted
+
+### Context
+
+The first design assumed the model would request several tool calls in one reply and finish a repair in about four iterations, so the default limit was 6. Two live runs on the sandbox with `openai/gpt-oss-120b` on Groq (`docs/demo/runs.md`, prompt versions 1 and 2) each made exactly one tool call per reply, applied no patch and stopped at `MAX_ITERATIONS`. A live probe confirmed that the model returns one call per reply even when asked to batch. A third run with `MAX_ITERATIONS=14` repaired all four bugs (4/8 to 8/8) in 11 iterations.
+
+### Decision
+
+The default `MAX_ITERATIONS` is 15. It stays configurable by environment variable. An iteration is still one LLM reply plus execution of its tool calls.
+
+### Rationale
+
+- The budget must fit the real behaviour of the free-tier model the project demonstrates, not an assumed ideal.
+- 15 leaves headroom over the one successful run (11 iterations) without removing the bound.
+- No-progress, regression and repeated-invalid-call rules still stop a failing run early, so a larger limit does not make bad runs longer.
+
+### Consequence
+
+Runs cost more tokens (the successful run used about 43,000) and take longer (about 3.5 minutes). A model that batches tool calls will finish in far fewer iterations. Reported results must state the limit used.
+
+---
+
 # Decision Summary
 
 The major architectural choices can be summarized as:
@@ -722,7 +746,7 @@ The major architectural choices can be summarized as:
 | Editable files | Existing `.py` only |
 | Verification | Full pytest suite |
 | Regression detection | Test IDs |
-| Max iterations | 6 |
+| Max iterations | 15 (see ADR-027) |
 | No-progress threshold | 2 consecutive unchanged patches |
 | Active tool-result context | 5 recent results |
 | Historical retrieval | Maximum 10/run |

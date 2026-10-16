@@ -7,7 +7,7 @@ from codepilot.config import Settings, DEFAULT_LLM_MODEL
 
 def test_settings_defaults():
     settings = Settings()
-    assert settings.max_iterations == 6
+    assert settings.max_iterations == 15
     assert settings.max_tool_calls_per_iteration == 10
     assert settings.command_timeout_s == 60
     assert settings.max_tool_output_chars == 4000

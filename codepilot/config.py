@@ -67,7 +67,7 @@ class Settings:
 
     # Iteration limit & tool limits
     max_iterations: int = field(
-        default_factory=lambda: int(os.getenv("MAX_ITERATIONS", "6"))
+        default_factory=lambda: int(os.getenv("MAX_ITERATIONS", "15"))
     )
     max_tool_calls_per_iteration: int = field(
         default_factory=lambda: int(

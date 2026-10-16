@@ -59,7 +59,7 @@ All limits live in one config object and are overridable by environment variable
 
 | Setting | Default |
 |---|---|
-| `MAX_ITERATIONS` | 6 |
+| `MAX_ITERATIONS` | 15 |
 | `MAX_TOOL_CALLS_PER_ITERATION` | 10 |
 | `COMMAND_TIMEOUT_SECONDS` | 60 |
 | `MAX_TOOL_OUTPUT_CHARS` | 4000 |
@@ -68,6 +68,8 @@ All limits live in one config object and are overridable by environment variable
 | `MAX_REQUEST_TOKENS_ESTIMATE` | 5000 |
 | `HISTORY_KEEP_RECENT_RESULTS` | 3 |
 | `MAX_RESULT_RETRIEVALS_PER_RUN` | 10 |
+
+One iteration is one LLM reply plus execution of its tool calls. The default of 15 comes from live evidence (`docs/demo/runs.md`): `openai/gpt-oss-120b` on Groq returns one tool call per reply, so repairing the four-bug sandbox took 11 iterations, and a limit of 6 stopped every earlier run. A model that batches tool calls needs far fewer.
 
 The agent stops when any of these happens, and always writes a report stating the reason:
 

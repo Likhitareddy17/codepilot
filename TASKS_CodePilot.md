@@ -32,7 +32,7 @@ The implementation must not introduce behavior that is outside the approved MVP 
   8. `git_diff`
   9. `get_tool_result`
 - Build → observe → diagnose → modify → test loop
-- Maximum 6 iterations
+- Maximum 15 iterations (default; configurable)
 - `NO_PROGRESS` after 2 consecutive patches with the same failing-test set and same main error
 - Protected-path enforcement
 - Existing `.py` files only for MVP edits
@@ -666,7 +666,7 @@ Native tool calling is authoritative; do not require a separate JSON decision en
 Enforce:
 
 ```text
-MAX_ITERATIONS = 6
+MAX_ITERATIONS = 15
 ```
 
 Do not permit the model to bypass this limit.

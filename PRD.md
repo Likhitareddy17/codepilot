@@ -136,7 +136,7 @@ User runs:  python main.py --repo sandbox_repo --task "Fix the failing tests"
 ## 9. Non-Functional Requirements
 
 - **Safety:** no destructive commands, no network calls other than the LLM API, no secret exposure.
-- **Boundedness:** default max 6 iterations, 60 s command timeout, 4000-character tool output cap.
+- **Boundedness:** default max 15 iterations, 60 s command timeout, 4000-character tool output cap.
 - **Determinism in tests:** the normal test suite uses a fake LLM; no live API calls.
 - **Observability:** every action is recorded in the trace; failures are never hidden.
 - **Cost:** no paid services; the LLM runs on Groq's free tier and everything else is local or GitHub Actions free minutes.

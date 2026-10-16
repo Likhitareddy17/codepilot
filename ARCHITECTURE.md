@@ -150,6 +150,7 @@ loop:
 - The conversation uses the provider's **native tool calling**.
 - Each assistant turn may contain several tool calls; the controller executes at most `MAX_TOOL_CALLS_PER_ITERATION`.
 - An **iteration** = one LLM response plus execution of its tool calls.
+- **Iteration budget.** `MAX_ITERATIONS` defaults to 15 (ADR-027). Some models return only one tool call per reply (observed: `openai/gpt-oss-120b` on Groq, which needed 11 iterations for the sandbox), so the budget must allow roughly one iteration per file read and per patch. A model that batches independent reads needs far fewer.
 
 ### 5.2 Per-iteration algorithm
 

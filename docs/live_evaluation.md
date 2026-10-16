@@ -19,9 +19,9 @@ call to one of them. If it fails, stop and read the printed message before spend
 .venv\Scripts\python -m pytest -m live -s -k batch
 ```
 Prints how many tool calls the model returned in a single reply. A model that returns one call per reply needs
-roughly one iteration per file read and per patch, so the default `MAX_ITERATIONS=6` is too small for the sandbox
-(about three source files, their tests and four patches). Set `MAX_ITERATIONS` in `.env` for such a model
-(for example `MAX_ITERATIONS=14`) and record it with the run. To try another model, set `GROQ_MODEL` for one run.
+roughly one iteration per file read and per patch. The default `MAX_ITERATIONS=15` (ADR-027) was chosen for such a
+model: the sandbox repair took 11 iterations. Record the limit with every run (the recorder does it). To try another
+model, set `GROQ_MODEL` for one run.
 
 ## 2. One complete run on the canonical sandbox
 ```powershell

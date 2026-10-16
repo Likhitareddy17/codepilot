@@ -144,6 +144,30 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.slow)
 
 
+SETTING_ENV_VARS = (
+    "COMMAND_TIMEOUT_SECONDS", "HISTORY_KEEP_RECENT_RESULTS", "KEEP_WORKSPACE", "LIST_MAX_DEPTH",
+    "LLM_API_KEY", "LLM_BASE_URL", "LLM_MAX_RETRIES", "LLM_MODEL", "GROQ_API_KEY", "GROQ_BASE_URL", "GROQ_MODEL",
+    "LOG_PATH", "MAX_ARG_CHARS", "MAX_BAD_MODEL_OUTPUTS", "MAX_ITERATIONS", "MAX_LIST_ENTRIES", "MAX_LOG_LINES",
+    "MAX_PATCH_ATTEMPTS_PER_FILE", "MAX_PROTECTED_PATH_ATTEMPTS", "MAX_READ_LINES", "MAX_REQUEST_TOKENS_ESTIMATE",
+    "MAX_RESULT_RETRIEVALS_PER_RUN", "MAX_SEARCH_LINE_CHARS", "MAX_SEARCH_RESULTS", "MAX_TOOL_CALLS_PER_ITERATION",
+    "MAX_TOOL_OUTPUT_CHARS", "METRICS_PATH", "RUNS_DIR", "SOURCE_REPO",
+)
+
+
+@pytest.fixture(autouse=True)
+def isolate_settings_from_the_environment(request, monkeypatch):
+    """A developer's .env or shell must never change what the offline tests see.
+
+    ``codepilot.config`` loads ``.env`` into ``os.environ`` at import time, so values such as
+    ``MAX_ITERATIONS=14`` would otherwise leak into every test. Live tests are the exception:
+    they need the real key and settings. Tests that need a value set it themselves.
+    """
+    if request.node.get_closest_marker("live"):
+        return
+    for name in SETTING_ENV_VARS:
+        monkeypatch.delenv(name, raising=False)
+
+
 @pytest.fixture
 def sandbox_expected() -> dict:
     """The sandbox manifest: counts, test ids, reference fixes (TESTING.md section 4.1)."""

@@ -831,8 +831,10 @@ The iteration count reaches the configured maximum.
 Current default:
 
 ``` text
-MAX_ITERATIONS = 6
+MAX_ITERATIONS = 15
 ```
+
+The default was raised from 6 after live evidence (`docs/demo/runs.md`): a model that makes one tool call per reply needs about 11 iterations for the sandbox. Tests must read the value from settings, never assume a number.
 
 ### `NO_PROGRESS`
 
