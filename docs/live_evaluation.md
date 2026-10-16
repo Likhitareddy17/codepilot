@@ -14,6 +14,15 @@ CI or in a plain `pytest`, and its results are evidence about model behaviour, n
 It sends the real system prompt and the real nine tool schemas once and checks that the model returns a valid
 call to one of them. If it fails, stop and read the printed message before spending more quota.
 
+## 1b. Does the model batch tool calls? (one request)
+```powershell
+.venv\Scripts\python -m pytest -m live -s -k batch
+```
+Prints how many tool calls the model returned in a single reply. A model that returns one call per reply needs
+roughly one iteration per file read and per patch, so the default `MAX_ITERATIONS=6` is too small for the sandbox
+(about three source files, their tests and four patches). Set `MAX_ITERATIONS` in `.env` for such a model
+(for example `MAX_ITERATIONS=14`) and record it with the run. To try another model, set `GROQ_MODEL` for one run.
+
 ## 2. One complete run on the canonical sandbox
 ```powershell
 .venv\Scripts\python -m pytest -m live -s -k sandbox_run

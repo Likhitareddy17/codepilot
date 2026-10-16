@@ -3,6 +3,7 @@ r"""Live evaluation (tier T5, TASK-093/094): the real Groq model.
 Never part of the normal suite or CI. Run explicitly, after setting GROQ_API_KEY:
 
     .venv\Scripts\python -m pytest -m live -s -k tool_calling      (one request, preflight)
+    .venv\Scripts\python -m pytest -m live -s -k batch             (one request, does the model batch calls?)
     .venv\Scripts\python -m pytest -m live -s -k sandbox_run       (one full repair run)
 
 These tests check safety invariants, not success: a live run that fails is still a valid,
@@ -46,6 +47,23 @@ def test_model_supports_tool_calling(live_settings, tmp_path):
         assert tool_call.name in registry.tool_names(), f"unknown tool {tool_call.name!r}"
     first = response.tool_calls[0]
     assert registry.execute(first.name, first.arguments).ok, "the model's first tool call was rejected by the tool"
+
+
+def test_model_can_batch_tool_calls(live_settings, tmp_path):
+    """Informational probe: does this model return several tool calls in ONE reply?
+
+    The answer decides how many iterations a repair needs: a model that makes one call per reply
+    needs a much larger MAX_ITERATIONS than one that reads every relevant file at once.
+    """
+    registry = build_default_registry(ToolContext(root=copy_sandbox(tmp_path / "sandbox"), settings=live_settings))
+    messages = [{"role": "system", "content": SYSTEM_PROMPT},
+                {"role": "user", "content": "Read app/orders.py, app/pagination.py and app/pricing.py. "
+                                            "Request all three reads together in this one reply."}]
+    response = GroqClient(live_settings).chat(messages, registry.llm_tool_schemas())
+    calls = [(c.name, c.arguments.get("path")) for c in response.tool_calls]
+    print(f"\nmodel={live_settings.llm_model} usage={response.usage}\ntool calls in ONE reply: {len(calls)} {calls}")
+    print("BATCHING: " + ("yes" if len(calls) >= 2 else "NO - one call per reply; budget MAX_ITERATIONS accordingly"))
+    assert response.tool_calls, f"The model answered without calling a tool: {response.text!r}"
 
 
 def test_sandbox_run(live_settings):
