@@ -317,6 +317,11 @@ Do not call tools merely to demonstrate that they exist.
 
 Each tool call should have a diagnostic purpose.
 
+A single assistant reply may contain several tool calls (up to
+`MAX_TOOL_CALLS_PER_ITERATION`). Independent read-only calls (source files,
+test files, logs, metrics) should be requested together in one reply, because
+every reply uses one iteration of a limited budget.
+
 ------------------------------------------------------------------------
 
 # 9. Evidence Gathering Prompt
@@ -977,6 +982,18 @@ When changing a prompt:
 
 Avoid changing prompts merely to make a single failing scenario pass
 without understanding why the previous behavior failed.
+
+## Version history
+
+-   **Version 2** (efficiency guidance). Reason: the first live Groq run on the
+    sandbox (`gpt-oss-120b`, prompt version 1, recorded in `docs/demo/runs.md`) made
+    one read-only tool call per reply, applied no patch, and stopped at
+    `MAX_ITERATIONS` (6) with the baseline unchanged. The model had never been told
+    that a reply may contain several tool calls or that iterations are limited. The
+    system prompt gained an EFFICIENCY block: batch independent reads, do not re-run
+    the baseline suite or re-read unchanged files, patch once the evidence supports a
+    hypothesis. Safety rules are unchanged.
+-   **Version 1**. Initial system prompt.
 
 ------------------------------------------------------------------------
 

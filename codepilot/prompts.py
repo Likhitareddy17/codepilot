@@ -16,7 +16,7 @@ from codepilot.llm.client import LLMResponse
 from codepilot.models import RunComparison, TestRunResult
 from codepilot.state import RunState
 
-PROMPT_VERSION = "1"
+PROMPT_VERSION = "2"   # 2: efficiency guidance (batch reads, no re-reads, patch early); see PROMPTS section 31
 
 DEFAULT_TASK = (
     "Fix the failing tests in this repository.\n\n"
@@ -88,6 +88,21 @@ HOW TO WORK WITH THE TOOLS:
   specific change. Otherwise stop calling tools and say what you found.
 - Older tool results are shown as short summaries. If you need the
   original output, retrieve it with get_tool_result instead of guessing.
+
+EFFICIENCY:
+
+- You have a limited number of iterations. Every reply you send is one
+  iteration, and a single reply may contain several tool calls.
+- Request all the read-only evidence you need together in one reply.
+  For example, read every relevant source file and test file, and the
+  logs and metrics, in the same reply. Do not spread independent reads
+  over several replies.
+- The baseline test result is already in the first message. Do not run
+  the full test suite again before you have changed code.
+- Do not read a file again unless it has changed. If an older result
+  was shortened, retrieve it with get_tool_result and its call_id.
+- Apply a patch as soon as the evidence supports a specific
+  hypothesis. You do not need to explain every file you read.
 
 EVIDENCE DISCIPLINE:
 

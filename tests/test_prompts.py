@@ -50,6 +50,8 @@ def state(**kwargs):
         "Observe first", "Diagnose", "Patch", "Verify", "Continue or stop",
         "FACT", "INFERENCE", "HYPOTHESIS", "VERIFIED RESULT",
         "get_tool_result",
+        "EFFICIENCY", "several tool calls", "Request all the read-only evidence you need together",
+        "Do not read a file again unless it has changed", "Apply a patch as soon as the evidence",
     ],
 )
 def test_system_prompt_contains_the_required_policy(phrase):
@@ -241,3 +243,15 @@ def test_rendering_returns_fresh_lists_and_does_not_mutate_the_conversation():
     first[0]["content"] = "tampered"
     first.append({"role": "user", "content": "extra"})
     assert conversation.messages()[0]["content"] == "S" and len(conversation.messages()) == 2
+
+
+def test_prompt_version_records_the_efficiency_change():
+    assert prompts.PROMPT_VERSION == "2"
+
+
+def test_efficiency_guidance_does_not_weaken_the_safety_rules():
+    efficiency = SYSTEM_PROMPT.split("EFFICIENCY:")[1].split("EVIDENCE DISCIPLINE:")[0]
+    assert "skip" not in efficiency.lower() and "ignore" not in efficiency.lower()
+    assert "verification is required" in SYSTEM_PROMPT                    # still demanded after every change
+    assert len(efficiency.splitlines()) < 20                               # stays short: tokens are scarce on the free tier
+
