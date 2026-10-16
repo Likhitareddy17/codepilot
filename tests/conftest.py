@@ -1,7 +1,9 @@
 """Shared fixtures for the tool and registry tests (TESTING.md section 4)."""
 
 import os
+import tempfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -117,7 +119,7 @@ def symlink_or_skip(link: Path, target: Path) -> None:
 # Quick run:  python -m pytest -m "not slow"      Full run: python -m pytest
 
 SLOW_MODULES = {"test_test_runner.py", "test_phase4_decisions.py", "test_workspace.py", "test_tools_git.py"}
-SLOW_FIXTURES = {"run", "ws", "git_registry"}   # fixtures that create a real Git workspace
+SLOW_FIXTURES = {"run", "ws", "git_registry", "git_sb"}   # fixtures that create a real Git workspace
 SLOW_NAMES = (
     "capture_baseline", "end_to_end", "regex", "test_workspace_creation", "test_workspace_cleanup_default",
     "test_workspace_keep_workspace", "test_workspace_cleanup_after_failure",
@@ -178,3 +180,14 @@ def sandbox_expected() -> dict:
 def sandbox_copy(tmp_path: Path) -> Path:
     """A private copy of the canonical sandbox; the canonical one is never touched."""
     return copy_sandbox(tmp_path / "sandbox")
+
+
+@pytest.fixture
+def offline_cli_env(tmp_path, monkeypatch):
+    """Runs go to tmp_path/runs and temporary workspaces to tmp_path/ws_tmp; a fake key is set."""
+    runs, scratch = tmp_path / "runs", tmp_path / "ws_tmp"
+    scratch.mkdir()
+    monkeypatch.setenv("RUNS_DIR", str(runs))
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_TESTKEY1234567890abcdef")
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    return SimpleNamespace(runs=runs, scratch=scratch)

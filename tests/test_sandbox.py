@@ -136,7 +136,8 @@ def test_tests_are_protected_and_application_files_are_editable():
 
 
 def test_reference_patches_are_accepted_by_the_real_apply_patch_tool(tmp_path, settings, sandbox_expected):
-    edits = all_fixes(sandbox_expected) + [sandbox_expected["regression_patch"]] + sandbox_expected["noop_patches"]
+    edits = (all_fixes(sandbox_expected) + [sandbox_expected["regression_patch"], sandbox_expected["equal_count_regression_patch"]]
+             + sandbox_expected["noop_patches"])
     for number, edit in enumerate(edits):
         root = copy_sandbox(tmp_path / f"copy{number}")
         before = tree_hash(root)
@@ -205,6 +206,17 @@ def test_regression_patch_really_causes_a_regression(sandbox_copy, sandbox_expec
     base = sandbox_expected["baseline"]
     assert set(patch["newly_failing_ids"]) <= run["failed"]
     assert set(base["failing_ids"]) <= run["failed"] and len(run["passed"]) < len(base["passing_ids"])
+
+
+@pytest.mark.slow
+def test_equal_count_regression_patch_swaps_failing_ids_without_changing_the_count(sandbox_copy, sandbox_expected):
+    patch = sandbox_expected["equal_count_regression_patch"]
+    apply_edit(sandbox_copy, patch)
+    run = run_suite(sandbox_copy)
+    base = sandbox_expected["baseline"]
+    assert len(run["failed"]) == base["failed"], "the failing count must stay the same"
+    assert set(patch["fixed_ids"]) <= set(base["failing_ids"]) - run["failed"]
+    assert set(patch["newly_failing_ids"]) == run["failed"] - set(base["failing_ids"])
 
 
 @pytest.mark.slow

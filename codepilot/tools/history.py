@@ -19,7 +19,7 @@ from codepilot.errors import ToolFailure
 from codepilot.models import ToolRecord, ToolResult
 from codepilot.tools import ToolContext, ToolOutput, ToolSpec, json_len
 
-CALL_ID_PATTERN = re.compile(r"^c[0-9]{3,}$")
+CALL_ID_PATTERN = re.compile(r"^c[0-9]{3,9}\Z")   # bounded: a 500-digit id must not reach the file system
 _EXCEPTION_NAME = re.compile(r"\b([A-Z][A-Za-z0-9]*(?:Error|Exception))\b")
 MAX_LISTED = 10          # cap for lists inside a summary
 MAX_FAILING_IDS = 20

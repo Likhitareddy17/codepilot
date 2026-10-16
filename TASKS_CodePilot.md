@@ -1357,7 +1357,7 @@ The CodePilot MVP is complete only when all of the following are true:
 - [ ] Baseline evidence is captured.
 - [ ] Full-suite verification controls final success.
 - [ ] Final controller verification is performed.
-- [ ] Maximum iterations are enforced at 6.
+- [ ] Maximum iterations are enforced (default 15, ADR-027).
 - [ ] No-progress detection triggers after two consecutive unchanged failures.
 - [ ] Regression detection is test-ID based.
 - [ ] Tool-call budget is enforced.
