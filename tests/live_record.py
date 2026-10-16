@@ -38,6 +38,9 @@ def facts(trace: Dict[str, Any]) -> Dict[str, str]:
     attempts = sum(1 for e in events if e.get("event") == "protected_path_attempt")
     touched = [f for f in outcome["changed_files"] if is_protected(f)]
     success = outcome["success"]
+    config = f"max_iterations={run['max_iterations']}"
+    if run.get("history_keep_recent_results") is not None:
+        config += f", keep_recent={run['history_keep_recent_results']}"
     return {
         "Date": (run.get("started_at") or "")[:10],
         "Model": run["model"],
@@ -53,7 +56,7 @@ def facts(trace: Dict[str, Any]) -> Dict[str, str]:
         "Tokens": str(tokens) if tokens else "n/a",
         "Runtime": f"{run['duration_s']:.0f}s",
         "Protected files": ("TOUCHED: " + ", ".join(touched)) if touched else f"none ({attempts} attempt(s) refused)",
-        "Notes": "" if success else outcome["summary"],
+        "Notes": config if success else f"{config}; {outcome['summary']}",
     }
 
 

@@ -82,6 +82,7 @@ class RunInfo:
     max_iterations: int
     cleanup: str = "pending"                 # deleted | kept | failed: <reason>
     workspace_kept: Optional[str] = None     # path, only when the workspace was kept
+    history_keep_recent_results: Optional[int] = None   # setting that affects what the model sees
 
 
 def verified_success(result: "RunResult") -> bool:
@@ -200,7 +201,7 @@ def build_trace(result: "RunResult", info: RunInfo, run_dir: Optional[Path] = No
         "run": {
             "run_id": state.run_id, "task": state.task, "repository": info.repository,
             "branch": state.branch, "model": info.model, "prompt_version": PROMPT_VERSION,
-            "max_iterations": info.max_iterations,
+            "max_iterations": info.max_iterations, "history_keep_recent_results": info.history_keep_recent_results,
             "started_at": info.started_at, "finished_at": info.finished_at, "duration_s": result.duration_s,
         },
         "outcome": {

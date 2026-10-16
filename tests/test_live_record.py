@@ -21,13 +21,14 @@ def test_success_row_has_every_column_and_the_recorded_numbers():
     assert values["Date"] == "2026-10-15" and values["Model"] == "openai/gpt-oss-120b" and values["Prompt"] != "n/a"
     assert (values["Baseline"], values["Final"], values["Stop reason"]) == ("2/4", "4/4", "SUCCESS")
     assert values["Iterations"] == "2" and values["LLM calls"] == "1" and values["Tool calls"] == "3"
-    assert values["Patches"] == "1 applied, 0 reverted" and values["Tokens"] == "1200" and values["Notes"] == ""
+    assert values["Patches"] == "1 applied, 0 reverted" and values["Tokens"] == "1200" and values["Notes"] == "max_iterations=6"
     assert values["Protected files"] == "none (0 attempt(s) refused)"
 
 
 def test_unsuccessful_run_keeps_its_failure_mode():
     values = facts(trace_of(make_result(StopReason.MAX_ITERATIONS, verified=False)))
-    assert values["Stop reason"] == "MAX_ITERATIONS" and values["Final"] == "3/4" and values["Notes"]
+    assert values["Stop reason"] == "MAX_ITERATIONS" and values["Final"] == "3/4"
+    assert values["Notes"].startswith("max_iterations=6; ")
     assert values["Tokens"] == "n/a"
 
 
@@ -56,3 +57,8 @@ def test_summary_counts_every_run():
     first, second = summary_lines(rows, successes=1)
     assert "Runs: 2; verified successes: 1; median iterations: 2" in first
     assert second == "Stop reasons: MAX_ITERATIONS x1, SUCCESS x1"
+
+
+def test_notes_record_the_limits_the_run_used():
+    info = RunInfo("r", "m", "2026-10-16T07:56:58+00:00", "t", 14, cleanup="deleted", history_keep_recent_results=8)
+    assert facts(build_trace(make_result(), info))["Notes"] == "max_iterations=14, keep_recent=8"

@@ -95,3 +95,9 @@ def test_write_trace_creates_valid_redacted_json(tmp_path):
 def test_trace_records_the_kept_workspace():
     info = RunInfo("r", "m", "a", "b", 6, cleanup="kept", workspace_kept="/tmp/ws")
     assert build_trace(make_result(), info)["cleanup"] == {"status": "kept", "workspace_kept": "/tmp/ws"}
+
+
+def test_trace_records_the_settings_that_shape_what_the_model_sees():
+    info = RunInfo("r", "m", "a", "b", 14, cleanup="deleted", history_keep_recent_results=8)
+    run = build_trace(make_result(), info)["run"]
+    assert run["max_iterations"] == 14 and run["history_keep_recent_results"] == 8

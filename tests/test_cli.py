@@ -211,6 +211,7 @@ def test_successful_run_writes_every_output_and_cleans_up(cli_env, tmp_path, cap
     assert {"run_trace.json", "report.md", "final_tests.txt", "fix.patch", "results"} <= {p.name for p in run.iterdir()}
     trace = json.loads((run / "run_trace.json").read_text(encoding="utf-8"))
     assert trace["outcome"]["success"] is True and trace["cleanup"]["status"] == "deleted"
+    assert trace["run"]["history_keep_recent_results"] == 3 and trace["run"]["max_iterations"] == 6
     assert "+    return a + b   # ADD" in (run / "fix.patch").read_text(encoding="utf-8")
     assert KEY not in read_all(run) + out + err
     assert not list(cli_env.scratch.iterdir()), "the temporary workspace was not deleted"

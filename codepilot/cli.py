@@ -162,6 +162,7 @@ def run_session(
         repository=str(repo), model=settings.llm_model, started_at=started, finished_at=utc_now_iso(),
         max_iterations=settings.max_iterations, cleanup=cleanup,
         workspace_kept=str(workspace.temp_dir) if keep else None,
+        history_keep_recent_results=settings.history_keep_recent_results,
     )
     errors = write_outputs(run_dir, result, info, secrets=[settings.llm_api_key])
     print(format_summary(result, info, run_dir))
