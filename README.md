@@ -17,7 +17,7 @@ CodePilot is a working MVP: every component is implemented and tested, and it ha
 | Implementation | Complete: workspace and Git isolation, nine controlled tools, evidence-driven controller, verification, audit, commit, trace, report, CLI |
 | Offline tests | 835 tests (832 run by default; 3 live tests need a Groq key and run only with `-m live`). No normal test calls an LLM. |
 | CI | GitHub Actions on Ubuntu and Windows, Python 3.11 ([workflow](.github/workflows/ci.yml)) |
-| Live evaluation | 3 recorded runs on `openai/gpt-oss-120b` (Groq free tier): 1 verified success. Details below and in [`docs/demo/runs.md`](docs/demo/runs.md). |
+| Live evaluation | 4 recorded runs on `openai/gpt-oss-120b` (Groq free tier): 1 verified success. Details below and in [`docs/demo/runs.md`](docs/demo/runs.md). |
 
 ### Live evaluation (honest summary)
 
@@ -32,7 +32,7 @@ Every live run is recorded, including the failures. Procedure: [`docs/live_evalu
 What this does and does not show:
 
 - The model returns **one tool call per reply** (checked with a live probe), so a repair needs roughly one iteration per file read and per patch. The first two runs ran out of the old 6-iteration budget before applying any patch. The default is now 15 ([ADR-027](ADR.md)).
-- This is **one verified success in three runs, not a success rate**. The first two runs were limited by the budget, not by a wrong fix. More runs are needed before any rate is quoted.
+- One of four runs reached SUCCESS, but this sample is too small to establish a reliable success rate. The first two runs were limited by the iteration budget, not by a wrong fix. More runs are needed before drawing conclusions.
 - Free-tier limits (about 8,000 tokens per minute) make a run take minutes, and only a few full runs fit in a day.
 - The deterministic FakeLLM tests prove the controller, not the model. The live runs are the evidence about the model.
 
@@ -780,7 +780,7 @@ Current limitations include:
 - bounded context retrieval
 - imperfect semantic test-gaming detection
 - live LLM behavior can differ from deterministic FakeLLM behavior
-- the live success rate is not established: 1 verified success in 3 recorded runs (see Status)
+- the live success rate is not established: 1 verified success in 4 recorded runs (see Status)
 - models that return one tool call per reply need many iterations (about 11 for the sandbox); the free-tier token limit makes such runs take minutes
 - secret-shaped text inside files the agent may read (source, logs) is not redacted in tool output; only secret files and the process environment are blocked, and the trace and report are redacted
 - `PROTECTED_PATH_NEEDED` (the agent asking for an edit it is not allowed to make) is not produced yet; protected edits are refused and counted instead
