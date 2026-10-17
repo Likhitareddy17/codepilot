@@ -31,11 +31,24 @@ def test_unique_match_is_applied_and_diffed(registry, ctx, tiny_repo):
     assert len(ctx.patches) == 1 and ctx.patches[0].applied and ctx.patches[0].path == "app/pagination.py"
 
 
-def test_match_not_found(registry, tiny_repo):
+def test_match_not_found_includes_bounded_closest_excerpt(registry, tiny_repo):
     before = (tiny_repo / "app" / "pagination.py").read_bytes()
-    result = patch(registry, old="does not exist")
-    assert code(result) == "MATCH_NOT_FOUND" and "read_file" in result.error["message"]
+    result = patch(registry, old="    start = page * size ")
+    message = result.error["message"]
+    assert code(result) == "MATCH_NOT_FOUND" and "read_file" in message
+    assert "Closest source excerpt" in message
+    assert "start = page * size" in message
+    assert len(message) < 1000
     assert (tiny_repo / "app" / "pagination.py").read_bytes() == before
+
+
+def test_match_not_found_without_similar_text_has_no_excerpt(registry, tiny_repo):
+    result = patch(registry, old="z" * 5000)
+    message = result.error["message"]
+    assert code(result) == "MATCH_NOT_FOUND"
+    assert "read_file" in message
+    assert "Closest source excerpt" not in message
+    assert len(message) < 200
 
 
 def test_match_not_unique(registry, tiny_repo):

@@ -418,7 +418,7 @@ The **only** tool that changes files. Implements `AGENTS.md` A5.
 4. If the per-file counter has reached `MAX_PATCH_ATTEMPTS_PER_FILE`: `PATCH_LIMIT_REACHED`.
 5. Read the file as bytes, decode UTF-8, remember the **original bytes** and the file's dominant line ending (CRLF or LF).
 6. Convert line endings in `old` and `new` to the file's line ending, so a match is not lost only because of `\r\n` versus `\n`.
-7. Count occurrences of `old`. Zero: `MATCH_NOT_FOUND` (message suggests re-reading the file). More than one: `MATCH_NOT_UNIQUE`.
+7. Count occurrences of `old`. Zero: `MATCH_NOT_FOUND` (message suggests re-reading the file and, when a plausible location exists, includes a bounded excerpt of up to seven nearby source lines, with each line capped at 120 characters and the excerpt capped at 650 characters). The excerpt is a hint, not a replacement for checking the source; it may be omitted when no plausible match is found. More than one: `MATCH_NOT_UNIQUE`.
 8. Write the new content (UTF-8, `newline=""` so endings are preserved).
 9. Increment the per-file counter (decision T6: counts patches that were written, including ones later reverted).
 10. If the file ends in `.py`, run a syntax check (`py_compile`, or `ast.parse` on the new text). On failure: **restore the original bytes exactly** and return `SYNTAX_ERROR` with the compiler message.

@@ -20,6 +20,40 @@ def _to_eol(text: str, eol: str) -> str:
     return text.replace("\n", "\r\n") if eol == "\r\n" else text
 
 
+def _match_hint(source: str, old: str) -> str:
+    """Return a small, bounded excerpt near the closest source-text match."""
+    source_lines = source.splitlines()
+    old_lines = old.replace("\r\n", "\n").splitlines()
+    if not source_lines or not old_lines:
+        return ""
+
+    # Compare short windows so a typo or stray space can still point the model
+    # at the right location without echoing the whole file or requested patch.
+    width = min(max(len(old_lines), 1), 5)
+    target = old_lines[:width]
+    best_start, best_score = 0, -1.0
+    for start in range(max(1, len(source_lines) - width + 1)):
+        candidate = source_lines[start:start + width]
+        score = difflib.SequenceMatcher(
+            None, "\n".join(target), "\n".join(candidate), autojunk=False
+        ).ratio()
+        if score > best_score:
+            best_start, best_score = start, score
+
+    # A low similarity score is not useful feedback. Keep excerpt limits fixed.
+    if best_score < 0.15:
+        return ""
+    first = max(0, best_start - 2)
+    last = min(len(source_lines), best_start + width + 2, first + 7)
+    excerpt = []
+    for index in range(first, last):
+        line = source_lines[index]
+        if len(line) > 120:
+            line = line[:117] + "..."
+        excerpt.append(f"{index + 1}: {line}")
+    return "\n".join(excerpt)[:650]
+
+
 def apply_patch(ctx: ToolContext, args: Dict[str, Any]) -> ToolOutput:
     """Replace one exact piece of text in one existing source file."""
     s = ctx.settings
@@ -64,10 +98,11 @@ def apply_patch(ctx: ToolContext, args: Dict[str, Any]) -> ToolOutput:
     old_n, new_n = _to_eol(old, eol), _to_eol(new, eol)
     occurrences = text.count(old_n)
     if occurrences == 0:
-        raise ToolFailure(
-            "MATCH_NOT_FOUND",
-            "The old text was not found. Re-read the file with read_file and copy the exact text.",
-        )
+        hint = _match_hint(text, old_n)
+        message = "The old text was not found. Re-read the file with read_file and copy the exact text."
+        if hint:
+            message += " Closest source excerpt (line numbers are 1-based; excerpt is truncated):\n" + hint
+        raise ToolFailure("MATCH_NOT_FOUND", message)
     if occurrences > 1:
         raise ToolFailure(
             "MATCH_NOT_UNIQUE",
