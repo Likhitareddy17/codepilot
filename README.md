@@ -15,7 +15,7 @@ CodePilot is a working MVP: every component is implemented and tested, and it ha
 | Area | State |
 |---|---|
 | Implementation | Complete: workspace and Git isolation, nine controlled tools, evidence-driven controller, verification, audit, commit, trace, report, CLI |
-| Offline tests | 835 tests (832 run by default; 3 live tests need a Groq key and run only with `-m live`). No normal test calls an LLM. |
+| Offline tests | 836 tests (833 run by default; 3 live tests need a Groq key and run only with `-m live`). No normal test calls an LLM. |
 | CI | GitHub Actions on Ubuntu and Windows, Python 3.11 ([workflow](.github/workflows/ci.yml)) |
 | Live evaluation | 4 recorded runs on `openai/gpt-oss-120b` (Groq free tier): 1 verified success. Details below and in [`docs/demo/runs.md`](docs/demo/runs.md). |
 
@@ -28,10 +28,12 @@ Every live run is recorded, including the failures. Procedure: [`docs/live_evalu
 | `20261015-170826` | v1 | 6 | `MAX_ITERATIONS`, 4/8 to 4/8 passing | 6 | 16,258 | 66 s |
 | `20261016-074108` | v2 | 6 | `MAX_ITERATIONS`, 4/8 to 4/8 passing | 6 | 17,288 | 75 s |
 | `20261016-075658` | v2 | 14 | **Verified success**, 4/8 to 8/8 passing, 4 patches | 11 | 42,750 | 203 s |
+| `20261017-124438` | v2 | 14 | `MAX_ITERATIONS`, 4/8 to 7/8 passing, 3 patches | 14 | 56,545 | 343 s |
 
 What this does and does not show:
 
 - The model returns **one tool call per reply** (checked with a live probe), so a repair needs roughly one iteration per file read and per patch. The first two runs ran out of the old 6-iteration budget before applying any patch. The default is now 15 ([ADR-027](ADR.md)).
+- The fourth run applied three of the four fixes and stopped one fix short at 7/8. About four of its 14 iterations went on re-reading files and on one patch whose `old` text did not match, so 15 iterations is roughly the minimum observed need, not generous headroom.
 - One of four runs reached SUCCESS, but this sample is too small to establish a reliable success rate. The first two runs were limited by the iteration budget, not by a wrong fix. More runs are needed before drawing conclusions.
 - Free-tier limits (about 8,000 tokens per minute) make a run take minutes, and only a few full runs fit in a day.
 - The deterministic FakeLLM tests prove the controller, not the model. The live runs are the evidence about the model.

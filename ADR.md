@@ -714,7 +714,7 @@ The MVP deliberately does less, but its behavior can be demonstrated and verifie
 
 ### Context
 
-The first design assumed the model would request several tool calls in one reply and finish a repair in about four iterations, so the default limit was 6. Two live runs on the sandbox with `openai/gpt-oss-120b` on Groq (`docs/demo/runs.md`, prompt versions 1 and 2) each made exactly one tool call per reply, applied no patch and stopped at `MAX_ITERATIONS`. A live probe confirmed that the model returns one call per reply even when asked to batch. A third run with `MAX_ITERATIONS=14` repaired all four bugs (4/8 to 8/8) in 11 iterations.
+The first design assumed the model would request several tool calls in one reply and finish a repair in about four iterations, so the default limit was 6. Two live runs on the sandbox with `openai/gpt-oss-120b` on Groq (`docs/demo/runs.md`, prompt versions 1 and 2) each made exactly one tool call per reply, applied no patch and stopped at `MAX_ITERATIONS`. A live probe confirmed that the model returns one call per reply even when asked to batch. A third run with `MAX_ITERATIONS=14` repaired all four bugs (4/8 to 8/8) in 11 iterations. A fourth run (also limit 14) applied three of the four fixes and stopped at the limit with 7/8 passing: about four of its 14 iterations went on re-reading files and on one patch whose `old` text did not match, and the last fix (`app/pricing.py`) was never reached. The run exhausted its 14-iteration budget with one fix remaining. A limit of 15 would have allowed one additional iteration, but the available evidence does not establish whether that would have completed the repair.
 
 ### Decision
 
@@ -723,12 +723,12 @@ The default `MAX_ITERATIONS` is 15. It stays configurable by environment variabl
 ### Rationale
 
 - The budget must fit the real behaviour of the free-tier model the project demonstrates, not an assumed ideal.
-- 15 leaves headroom over the one successful run (11 iterations) without removing the bound.
+- 15 is approximately the minimum observed budget to attempt this repair, not generous headroom: the successful run took 11 iterations, while the fourth run exhausted its 14-iteration budget with one fix remaining. A limit of 15 would have allowed one additional iteration, but the available evidence does not establish whether that would have completed the repair. Success depends on how many iterations the model wastes.
 - No-progress, regression and repeated-invalid-call rules still stop a failing run early, so a larger limit does not make bad runs longer.
 
 ### Consequence
 
-Runs cost more tokens (the successful run used about 43,000) and take longer (about 3.5 minutes). A model that batches tool calls will finish in far fewer iterations. Reported results must state the limit used.
+Runs cost more tokens (the successful run used about 43,000; the fourth run about 56,500) and take longer (about 3.5 to 6 minutes). A limit of 15 does not guarantee success: the live success rate is not established (1 verified success in 4 recorded runs). A model that batches tool calls will finish in far fewer iterations. Reported results must state the limit used.
 
 ---
 

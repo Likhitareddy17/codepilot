@@ -18,7 +18,7 @@ you have seen the evidence, and record the date.
 | 7 | Independent `fix.patch` application | `tests/test_sandbox.py` does it for the offline run; for a live run use the commands in README section 17 | [ ] Your check (live run `20261016-075658`) |
 | 8 | CI on Ubuntu | GitHub Actions, latest commit on `main` | [ ] Your check |
 | 9 | CI on Windows | GitHub Actions, latest commit on `main` | [ ] Your check |
-| 10 | Live Groq evaluation | `docs/live_evaluation.md`; every run in `docs/demo/runs.md` | [ ] Your check (3 runs recorded, 1 verified success) |
+| 10 | Live Groq evaluation | `docs/live_evaluation.md`; every run in `docs/demo/runs.md` | [ ] Your check (4 runs recorded, 1 verified success) |
 | 11 | Review trace and report artifacts | open `runs\<run_id>\report.md` and `run_trace.json` of a live run | [ ] Your check |
 | 12 | No protected file modified | automated in every sandbox run and in the live test; also read `fix.patch` (only `app/*.py` may change) | Automated + [ ] Your check |
 | 13 | Canonical sandbox unchanged | automated by hash in `tests/test_sandbox.py`, `tests/test_e2e_sandbox.py` and the live test | Automated |
@@ -65,7 +65,7 @@ you have seen the evidence, and record the date.
 
 ## Known limitations that stay open (documented in README section 20)
 
-- The live success rate is not established (1 verified success in 3 recorded runs).
+- The live success rate is not established (1 verified success in 4 recorded runs).
 - Secret-shaped text inside readable source and log files is not redacted in tool output.
 - `PROTECTED_PATH_NEEDED` is not produced; `MAX_REQUEST_TOKENS_ESTIMATE` is not enforced.
 - Semantic test gaming inside an allowed source file cannot be detected by the MVP.

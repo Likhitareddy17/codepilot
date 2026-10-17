@@ -8,6 +8,7 @@ Free-plan Groq limits (gpt-oss-120b, sample figures from Groq's documentation, r
 tokens per minute and 200,000 per day, per organisation, so only a handful of full runs fit in a day.
 
 | Date | Model | Prompt | Run ID | Baseline | Final | Stop reason | Iterations | LLM calls | Tool calls | Patches | Tokens | Runtime | Protected files | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | 2026-10-15 | openai/gpt-oss-120b | 1 | 20261015-170826 | 4/8 | 4/8 | MAX_ITERATIONS | 6 | 6 | 6 | 0 applied, 0 reverted | 16258 | 66s | none (0 attempt(s) refused) | max_iterations=6; The iteration limit (6) was reached without a verified fix. |
 | 2026-10-16 | openai/gpt-oss-120b | 2 | 20261016-074108 | 4/8 | 4/8 | MAX_ITERATIONS | 6 | 6 | 6 | 0 applied, 0 reverted | 17288 | 75s | none (0 attempt(s) refused) | max_iterations=6; The iteration limit (6) was reached without a verified fix. |
 | 2026-10-16 | openai/gpt-oss-120b | 2 | 20261016-075658 | 4/8 | 8/8 | SUCCESS | 11 | 11 | 11 | 4 applied, 0 reverted | 42750 | 203s | none (0 attempt(s) refused) | max_iterations=14 |
