@@ -10,25 +10,25 @@ you have seen the evidence, and record the date.
 | # | Step | How | Status |
 |---|---|---|---|
 | 1 | Static and project sanity checks | `.venv\Scripts\python -m compileall -q codepilot tests` | [ ] Your check |
-| 2 | Unit tests | `.venv\Scripts\python -m pytest -q -m "not slow"` | [ ] Your check |
-| 3 | Adversarial tests | `.venv\Scripts\python -m pytest -q tests/test_adversarial.py` | [ ] Your check |
-| 4 | Offline FakeLLM E2E tests | `.venv\Scripts\python -m pytest -q tests/test_e2e_sandbox.py tests/test_controller.py tests/test_cli.py` | [ ] Your check |
-| 5 | Sandbox integrity | `.venv\Scripts\python -m pytest -q tests/test_sandbox.py` | [ ] Your check |
-| 6 | CLI smoke test from a clean environment | fresh clone, new venv, `pip install -r requirements.txt`, then `python main.py --repo sandbox_repo` (needs a key), or `python main.py --help` and a missing-repo run without one | [ ] Your check |
-| 7 | Independent `fix.patch` application | `tests/test_sandbox.py` does it for the offline run; for a live run use the commands in README section 17 | [ ] Your check (live run `20261016-075658`) |
-| 8 | CI on Ubuntu | GitHub Actions, latest commit on `main` | [ ] Your check |
-| 9 | CI on Windows | GitHub Actions, latest commit on `main` | [ ] Your check |
-| 10 | Live Groq evaluation | `docs/live_evaluation.md`; every run in `docs/demo/runs.md` | [ ] Your check (4 runs recorded, 1 verified success) |
-| 11 | Review trace and report artifacts | open `runs\<run_id>\report.md` and `run_trace.json` of a live run | [ ] Your check |
-| 12 | No protected file modified | automated in every sandbox run and in the live test; also read `fix.patch` (only `app/*.py` may change) | Automated + [ ] Your check |
-| 13 | Canonical sandbox unchanged | automated by hash in `tests/test_sandbox.py`, `tests/test_e2e_sandbox.py` and the live test | Automated |
+| 2 | Unit tests | `.venv\Scripts\python -m pytest -q -m "not slow"` | [x] 2026-10-17, local Windows: 603 passed, 4 skipped, 229 deselected |
+| 3 | Adversarial tests | `.venv\Scripts\python -m pytest -q tests/test_adversarial.py` | [x] 2026-10-17, local Windows: 183 passed |
+| 4 | Offline FakeLLM E2E tests | `.venv\Scripts\python -m pytest -q tests/test_e2e_sandbox.py tests/test_controller.py tests/test_cli.py` | [x] 2026-10-17, local Windows: 79 passed |
+| 5 | Sandbox integrity | `.venv\Scripts\python -m pytest -q tests/test_sandbox.py` | [x] 2026-10-17, local Windows: 25 passed |
+| 6 | CLI smoke test from a clean environment | fresh clone, new venv, `pip install -r requirements.txt`, then `python main.py --repo sandbox_repo` (needs a key), or `python main.py --help` and a missing-repo run without one | [x] by 2026-10-17: fresh clone, install, `--help` and the missing-repository error checked (no live run) |
+| 7 | Independent `fix.patch` application | `tests/test_sandbox.py` does it for the offline run; for a live run use the commands in README section 17 | [x] by 2026-10-17: live run `20261016-075658`; `git apply --check` passed, 8 passed, only `app/orders.py`, `app/pagination.py`, `app/pricing.py` changed |
+| 8 | CI on Ubuntu | GitHub Actions, latest commit on `main` | [ ] Your check: workflow green for `7c1704f`, `9f614c2`, `30fa06f`; confirm `4b1bb4d` |
+| 9 | CI on Windows | GitHub Actions, latest commit on `main` | [ ] Your check: workflow green for `7c1704f`, `9f614c2`, `30fa06f`; confirm `4b1bb4d` |
+| 10 | Live Groq evaluation | `docs/live_evaluation.md`; every run in `docs/demo/runs.md` | [x] by 2026-10-17: 4 runs recorded, failures included, 1 verified success |
+| 11 | Review trace and report artifacts | open `runs\<run_id>\report.md` and `run_trace.json` of a live run | [x] by 2026-10-17: run `20261016-075658` reviewed; known gap: controller `run_tests` entries have no timestamp |
+| 12 | No protected file modified | automated in every sandbox run and in the live test; also read `fix.patch` (only `app/*.py` may change) | Automated + [x] by 2026-10-17: patch for `20261016-075658` touches only the three `app/` files; no protected-file attempts |
+| 13 | Canonical sandbox unchanged | automated by hash in `tests/test_sandbox.py`, `tests/test_e2e_sandbox.py` and the live test | Automated + [x] by 2026-10-17: `git diff --exit-code` returned 0 and `git status --porcelain` was empty in `sandbox_repo` |
 | 14 | Definition of Done | table below | see below |
 
 ## Definition of Done
 
 | Criterion | Evidence | Status |
 |---|---|---|
-| CLI runs successfully from a clean environment | step 6 | Your check |
+| CLI runs successfully from a clean environment | step 6 | Verified (step 6, no live run in the clean clone) |
 | Canonical sandbox never modified by a run | hash checks in `test_sandbox.py`, `test_e2e_sandbox.py`, `tests/live` | Automated |
 | Temporary Git workspace created correctly | `test_workspace.py` | Automated |
 | Repair branch created correctly | `test_workspace.py`, `test_cli.py` | Automated |
@@ -58,10 +58,16 @@ you have seen the evidence, and record the date.
 | `--keep-workspace` works | `test_cli.py` | Automated |
 | Exit codes follow the contract | `test_cli.py` | Automated |
 | Sandbox contains the intended seeded defects | `test_sandbox.py` | Automated |
-| Independent `fix.patch` application passes | `test_sandbox.py` (offline), step 7 (live) | Automated + Your check |
-| CI passes on Ubuntu and Windows (Python 3.11) | steps 8 and 9 | Your check |
-| Live evaluation recorded honestly | `docs/demo/runs.md` | Your check |
-| README and architecture documentation complete | `README.md`, `ARCHITECTURE.md` (approved diagram) | Done in Phase 18; review it |
+| Independent `fix.patch` application passes | `test_sandbox.py` (offline), step 7 (live) | Automated + Verified (step 7) |
+| CI passes on Ubuntu and Windows (Python 3.11) | steps 8 and 9 | Your check (pending: CI for `4b1bb4d`) |
+| Live evaluation recorded honestly | `docs/demo/runs.md` | Verified (step 10): all four runs recorded, failures included; README says 1 verified success in 4 runs and that no rate is established |
+| README and architecture documentation complete | `README.md`, `ARCHITECTURE.md` (approved diagram) | Counts and live results reconciled with `runs.md` and the test collection at `4b1bb4d`; a full read-through is still yours |
+
+## What this record covers
+
+Source code last changed at `cd826bc`; every later commit up to `4b1bb4d` changed documentation only. The local test runs
+above were made on a working tree with that source, so they apply to `4b1bb4d`. CI for `4b1bb4d` and the final read-through are the
+open items; step 1 (`compileall`) has no recorded output yet. Step 14 stays open until they are done.
 
 ## Known limitations that stay open (documented in README section 20)
 
