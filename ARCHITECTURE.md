@@ -14,6 +14,41 @@ This document tells a coding agent **how the system is structured**: which modul
 
 ## 1. System Context
 
+The approved high-level flow:
+
+```text
+                    ┌──────────────┐
+                    │     CLI      │
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │  Controller  │
+                    └──┬────────┬──┘
+                       │        │
+              ┌────────▼──┐  ┌─▼──────────┐
+              │ LLMClient │  │ Run State  │
+              └─────┬─────┘  └────┬───────┘
+                    │             │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Tool Registry│
+                    └──────┬───────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+   Repository           Tests/Logs          Git
+      Tools              Metrics            Diff
+        │                  │                  │
+        └──────────────────┼──────────────────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Trace/Report │
+                    └──────────────┘
+```
+
+The detailed context follows.
+
 ```text
  Developer (CLI)
       |

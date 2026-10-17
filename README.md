@@ -8,6 +8,36 @@ The key design principle is that the LLM is **not** given unrestricted control o
 
 ---
 
+## Status
+
+CodePilot is a working MVP: every component is implemented and tested, and it has repaired the bundled sandbox with a real LLM.
+
+| Area | State |
+|---|---|
+| Implementation | Complete: workspace and Git isolation, nine controlled tools, evidence-driven controller, verification, audit, commit, trace, report, CLI |
+| Offline tests | 835 tests (832 run by default; 3 live tests need a Groq key and run only with `-m live`). No normal test calls an LLM. |
+| CI | GitHub Actions on Ubuntu and Windows, Python 3.11 ([workflow](.github/workflows/ci.yml)) |
+| Live evaluation | 3 recorded runs on `openai/gpt-oss-120b` (Groq free tier): 1 verified success. Details below and in [`docs/demo/runs.md`](docs/demo/runs.md). |
+
+### Live evaluation (honest summary)
+
+Every live run is recorded, including the failures. Procedure: [`docs/live_evaluation.md`](docs/live_evaluation.md).
+
+| Run | Prompt | Iteration limit | Result | Iterations | Tokens | Time |
+|---|---|---|---|---|---|---|
+| `20261015-170826` | v1 | 6 | `MAX_ITERATIONS`, 4/8 to 4/8 passing | 6 | 16,258 | 66 s |
+| `20261016-074108` | v2 | 6 | `MAX_ITERATIONS`, 4/8 to 4/8 passing | 6 | 17,288 | 75 s |
+| `20261016-075658` | v2 | 14 | **Verified success**, 4/8 to 8/8 passing, 4 patches | 11 | 42,750 | 203 s |
+
+What this does and does not show:
+
+- The model returns **one tool call per reply** (checked with a live probe), so a repair needs roughly one iteration per file read and per patch. The first two runs ran out of the old 6-iteration budget before applying any patch. The default is now 15 ([ADR-027](ADR.md)).
+- This is **one verified success in three runs, not a success rate**. The first two runs were limited by the budget, not by a wrong fix. More runs are needed before any rate is quoted.
+- Free-tier limits (about 8,000 tokens per minute) make a run take minutes, and only a few full runs fit in a day.
+- The deterministic FakeLLM tests prove the controller, not the model. The live runs are the evidence about the model.
+
+---
+
 ## 1. Problem
 
 An AI coding assistant can generate a plausible fix, but generating code is not the same as proving that the software is repaired.
@@ -71,6 +101,39 @@ CodePilot addresses these questions through an evidence-driven repair loop.
                        │ Trace / Report    │
                        │ + fix.patch       │
                        └───────────────────┘
+```
+
+The approved high-level flow (the diagram above adds the verification step and the artifacts):
+
+```text
+                    ┌──────────────┐
+                    │     CLI      │
+                    └──────┬───────┘
+                           │
+                    ┌──────▼───────┐
+                    │  Controller  │
+                    └──┬────────┬──┘
+                       │        │
+              ┌────────▼──┐  ┌─▼──────────┐
+              │ LLMClient │  │ Run State  │
+              └─────┬─────┘  └────┬───────┘
+                    │             │
+                    └──────┬──────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Tool Registry│
+                    └──────┬───────┘
+                           │
+        ┌──────────────────┼──────────────────┐
+        │                  │                  │
+   Repository           Tests/Logs          Git
+      Tools              Metrics            Diff
+        │                  │                  │
+        └──────────────────┼──────────────────┘
+                           │
+                    ┌──────▼───────┐
+                    │ Trace/Report │
+                    └──────────────┘
 ```
 
 The repair loop is:
@@ -252,8 +315,10 @@ The failure count is still two, but the failing test set changed. CodePilot trea
 The MVP enforces:
 
 ```text
-Maximum iterations = 6
+Maximum iterations = 15   (default; set MAX_ITERATIONS to change it, see ADR-027)
 ```
+
+An iteration is one LLM reply plus the execution of its tool calls. A model that returns one tool call per reply (observed with `openai/gpt-oss-120b` on Groq) needed 11 iterations for the sandbox; a model that batches tool calls needs far fewer.
 
 CodePilot also detects no progress.
 
@@ -438,7 +503,16 @@ The sandbox contains four deliberate defect categories:
 3. Discount calculation
 4. Cross-evidence diagnostic defect
 
-The exact expected values and test IDs are defined by `SANDBOX_REPO.md`.
+The sandbox starts with **8 tests: 4 passing, 4 failing**. Each defect has exactly one failing test, and the pagination tests include two that pass on both the buggy and the fixed code.
+
+| Defect | Failing test | Evidence needed |
+|---|---|---|
+| BUG-01 pagination off-by-one (`app/pagination.py`) | `test_pagination.py::test_second_page` | test output |
+| BUG-02 missing `None` handling (`app/orders.py`) | `test_orders.py::test_missing_order` | test output and log traceback |
+| BUG-03 discount calculation (`app/pricing.py`) | `test_pricing.py::test_percentage_discount` | test output and metrics |
+| BUG-04 case-sensitive tax region (`app/orders.py`) | `test_orders.py::test_order_total` | log warnings and metrics |
+
+The machine-readable truth (test IDs, reference fixes, regression and no-op patches) is `tests/fixtures/sandbox_expected.json`; the design is in `SANDBOX_REPO.md`. Integrity tests prove that each reference fix repairs only its own defect, that all four give 8/8, and that a CodePilot run never changes the canonical sandbox.
 
 The sandbox is intentionally small and deterministic so the complete repair loop can be demonstrated and tested repeatedly.
 
@@ -511,33 +585,33 @@ This verifies the delivered patch rather than trusting CodePilot's internal stat
 
 ## 13. CI
 
-The intended CI environment is:
+CI is implemented in `.github/workflows/ci.yml`:
 
 ```text
 Python 3.11
-Ubuntu
-Windows
+Ubuntu + Windows (matrix, fail-fast off)
+python -m pytest -ra --junitxml=test-results/junit.xml
 ```
 
-The standard automated suite does not require a Groq API key.
-
-Pytest JUnit XML and normal stdout/stderr evidence are captured for diagnosis.
+The suite is offline: no Groq key is set in CI, and live tests are never collected there. The JUnit XML is uploaded as an artifact on every run, including failures.
 
 ---
 
 ## 14. Generated Artifacts
 
-A run can produce artifacts such as:
+Each run writes a folder under `runs/` (outside the workspace, ignored by Git):
 
 ```text
-run/
-├── trace.json
-├── report.json
-├── report.md
-├── fix.patch
-├── junit.xml
-└── metadata.json
+runs/<run_id>/
+├── run_trace.json    run metadata, baseline, one entry per tool call, model turns, patches, stop reason, cleanup status
+├── report.md         honest outcome, observed facts vs the model's unverified explanation, patches, verification
+├── final_tests.txt   the controller's latest full-suite result
+├── fix.patch         the verified diff (only for a verified fix)
+├── junit.xml         pytest JUnit evidence
+└── results/          every full tool result (c001.json, c002.json, ...)
 ```
+
+The temporary workspace is deleted after the run unless `--keep-workspace` is used. Secrets and secret-shaped tokens are redacted from the trace and report.
 
 These artifacts provide an auditable record of:
 
@@ -547,66 +621,94 @@ These artifacts provide an auditable record of:
 - why it stopped
 - whether the repair was verified
 
-Exact artifact paths and names are determined by the implementation.
 
 ---
 
 ## 15. Installation
 
-### Requirements
+Requirements: Python 3.11+, Git.
 
-```text
-Python 3.11+
-Git
-pytest
+```powershell
+git clone https://github.com/Likhitareddy17/codepilot
+cd codepilot
+python -m venv .venv
+.venv\Scripts\python -m pip install -r requirements.txt      # Linux/macOS: .venv/bin/python
 ```
 
-Install the project's dependencies using the dependency configuration included with the repository.
+Optional: `.venv\Scripts\python -m pip install -e .` adds a `codepilot` command; `python main.py` works without it.
 
-For live Groq evaluation, configure the required API credential through the environment.
+### Configuration
 
-Example:
+Create a `.env` file in the repository root (it is ignored by Git and protected from the agent):
 
 ```text
 GROQ_API_KEY=<your-key>
-LLM_MODEL=<configured-model>
+GROQ_MODEL=openai/gpt-oss-120b      # optional, this is the default
 ```
 
-**Never commit API keys to Git.**
+**Never commit API keys.** All limits are environment variables with defaults in `codepilot/config.py`; the full table is in `AGENTS.md` (A2). The ones you are most likely to change:
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `MAX_ITERATIONS` | 15 | LLM replies allowed per run |
+| `COMMAND_TIMEOUT_SECONDS` | 60 | timeout for each pytest or Git command |
+| `HISTORY_KEEP_RECENT_RESULTS` | 3 | tool results kept in full in the model's context |
+| `MAX_TOOL_CALLS_PER_ITERATION` | 10 | tool calls accepted from one reply |
+| `RUNS_DIR` | `runs` | where run folders are written |
+| `KEEP_WORKSPACE` | false | keep the temporary workspace |
 
 ---
 
 ## 16. Running Tests
 
-The standard test command is:
-
-```bash
-pytest -v
+```powershell
+.venv\Scripts\python -m pytest -q                  # the full offline suite
+.venv\Scripts\python -m pytest -q -m "not slow"    # fast loop: no Git or pytest subprocesses
+.venv\Scripts\python -m pytest -m live -s          # live Groq tests (needs GROQ_API_KEY; never run in CI)
 ```
 
-JUnit XML output is used where structured CI/test evidence is required.
-
-The normal test suite is deterministic and does not require live LLM calls.
+The offline suite is deterministic and never calls an LLM. It ignores your `.env` and shell settings, and it does not collect `sandbox_repo/` (that suite fails on purpose; run it with `cd sandbox_repo` then `python -m pytest`).
 
 ---
 
 ## 17. Running CodePilot
 
-The final CLI interface is defined by the implementation.
-
-Conceptually:
-
-```bash
-codepilot <repository-or-sandbox>
+```powershell
+.venv\Scripts\python main.py --repo sandbox_repo --task "Fix the failing tests"
 ```
 
-To preserve the temporary workspace for debugging:
+| Option | Meaning |
+|---|---|
+| `--repo PATH` | repository to repair (default `.`); it is copied, never modified |
+| `--task TEXT` | task description (default "Fix the failing tests") |
+| `--max-iterations N` | override `MAX_ITERATIONS` |
+| `--keep-workspace` | keep the temporary Git workspace for debugging |
 
-```bash
-codepilot <repository-or-sandbox> --keep-workspace
+Startup problems (missing repository, no Git, no API key, invalid settings) exit with code 2 and a clear message, before any workspace is created.
+
+### Example run
+
+A real run on the sandbox (run `20261016-075658`, `openai/gpt-oss-120b`, `MAX_ITERATIONS=14`):
+
+```text
+Run 20261016-075658
+Result: SUCCESS (fix verified by the full test suite, audited and committed)
+Stop reason: SUCCESS: The full test suite passes and the fix was committed (f0c85409).
+Tests: 4/8 -> 8/8 passing in 11 iteration(s)
+Commit: f0c85409 on codepilot/fix-20261016-075658
+Outputs: runs\20261016-075658
+Fix: <repo>\runs\20261016-075658\fix.patch
 ```
 
-The public CLI should expose only approved MVP controls.
+To check the fix independently, apply only `fix.patch` to a clean copy of the sandbox and run plain pytest:
+
+```powershell
+$patch = (Resolve-Path runs\<run_id>\fix.patch).Path
+Copy-Item sandbox_repo $env:TEMP\sb_verify -Recurse
+cd $env:TEMP\sb_verify; git apply $patch; <path-to-venv>\Scripts\python -m pytest -q
+```
+
+Expected: `8 passed`.
 
 ---
 
@@ -678,6 +780,11 @@ Current limitations include:
 - bounded context retrieval
 - imperfect semantic test-gaming detection
 - live LLM behavior can differ from deterministic FakeLLM behavior
+- the live success rate is not established: 1 verified success in 3 recorded runs (see Status)
+- models that return one tool call per reply need many iterations (about 11 for the sandbox); the free-tier token limit makes such runs take minutes
+- secret-shaped text inside files the agent may read (source, logs) is not redacted in tool output; only secret files and the process environment are blocked, and the trace and report are redacted
+- `PROTECTED_PATH_NEEDED` (the agent asking for an edit it is not allowed to make) is not produced yet; protected edits are refused and counted instead
+- the request size estimate (`MAX_REQUEST_TOKENS_ESTIMATE`) is not enforced; measured requests on the sandbox were about 2,000 to 4,000 tokens
 
 These are explicit scope boundaries.
 
@@ -705,7 +812,7 @@ These are intentionally outside the MVP.
 
 ## 22. Project Structure
 
-The intended high-level structure is:
+The high-level structure is:
 
 ```text
 CodePilot/
@@ -735,19 +842,19 @@ CodePilot/
 │       ├── client.py
 │       └── fake.py
 │
-├── tests/
-├── sandbox_repo/
-├── .github/
-│   └── workflows/
+├── tests/              unit, offline E2E, adversarial and sandbox tests; tests/live/ for live Groq tests
+├── sandbox_repo/       the deterministic demonstration repository
+├── docs/               live evaluation procedure and record
+├── .github/workflows/  CI
 │
 ├── AGENTS.md
 ├── PRD.md
 ├── ARCHITECTURE.md
 ├── TOOLS.md
-├── PROMPTS.md
+├── PROMPTS_CodePilot.md
 ├── SANDBOX_REPO.md
 ├── TESTING.md
-├── TASKS.md
+├── TASKS_CodePilot.md
 ├── ADR.md
 └── README.md
 ```
@@ -765,9 +872,10 @@ The project is organized around these documents:
 | `ARCHITECTURE.md` | System architecture and control flow |
 | `TOOLS.md` | Tool contracts and tool safety |
 | `SANDBOX_REPO.md` | Deterministic sandbox and seeded defects |
-| `PROMPTS.md` | LLM prompts and reasoning policy |
+| `PROMPTS_CodePilot.md` | LLM prompts, reasoning policy and prompt version history |
 | `TESTING.md` | Test strategy and verification specification |
-| `TASKS.md` | Dependency-ordered implementation plan |
+| `TASKS_CodePilot.md` | Dependency-ordered implementation plan and Definition of Done |
+| `docs/live_evaluation.md`, `docs/demo/runs.md` | Live evaluation procedure and the record of every live run |
 | `ADR.md` | Important architectural decisions and rationale |
 | `README.md` | Project-facing documentation |
 

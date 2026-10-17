@@ -748,7 +748,7 @@ The major architectural choices can be summarized as:
 | Regression detection | Test IDs |
 | Max iterations | 15 (see ADR-027) |
 | No-progress threshold | 2 consecutive unchanged patches |
-| Active tool-result context | 5 recent results |
+| Active tool-result context | 3 recent results (`HISTORY_KEEP_RECENT_RESULTS`) |
 | Historical retrieval | Maximum 10/run |
 | Live LLM | Groq |
 | LLM configuration | `LLM_MODEL` |
