@@ -242,16 +242,14 @@ CodePilot follows a least-privilege model.
 The agent cannot modify protected files/directories such as:
 
 ```text
-tests/
-conftest.py
-.github/
-.env
-.env.*
-pytest.ini
-pyproject.toml
+tests/        test_*.py        *_test.py        conftest.py
+.github/      .gitignore       codepilot/
+.env          .env.*
+pytest.ini    tox.ini          setup.cfg        pyproject.toml
 requirements*.txt
-.gitignore
 ```
+
+The agent also cannot **read** secret files: `.env`, `.env.*`, `*.pem`, `*.key`, `id_rsa*` and `.git/`. These files are not copied into the temporary workspace, and the read tools would refuse or hide them anyway (`read_file` is refused; `list_files` and `search_code` leave them out).
 
 ### Allowed edits
 
@@ -360,7 +358,7 @@ Tool output can become large over multiple iterations.
 CodePilot therefore uses a hybrid history strategy:
 
 ```text
-Most recent 3 tool results
+Most recent 3 tool results (default, HISTORY_KEEP_RECENT_RESULTS)
         ↓
       full
 
@@ -368,7 +366,7 @@ Older results
         ↓
 structured summaries
         ↓
-complete result retained in run state/trace
+complete result persisted in runs/<run_id>/results/
         ↓
 get_tool_result(call_id)
 ```
@@ -389,11 +387,7 @@ This balances context size with evidence retention.
 
 The controller communicates through a provider-independent `LLMClient`.
 
-The current live provider is **Groq**, with the model configured through:
-
-```text
-LLM_MODEL
-```
+The current live provider is **Groq**, with the model configured through `GROQ_MODEL` (or `LLM_MODEL`); the default is `openai/gpt-oss-120b`.
 
 Provider-specific implementation details remain isolated from the controller.
 
@@ -475,6 +469,8 @@ The MVP does **not** automatically:
 - perform destructive Git recovery
 
 Repository delivery remains human-controlled.
+
+The repair branch and the commit live in the temporary workspace and are deleted with it unless `--keep-workspace` is used. What always survives is the run folder `runs/<run_id>/`: the trace, the report and, for a verified fix, `fix.patch` (see section 14).
 
 ---
 
@@ -822,6 +818,7 @@ CodePilot/
 │   ├── config.py
 │   ├── errors.py
 │   ├── models.py
+│   ├── safety.py
 │   ├── state.py
 │   ├── workspace.py
 │   ├── controller.py
@@ -844,12 +841,16 @@ CodePilot/
 │       ├── client.py
 │       └── fake.py
 │
+├── main.py             command line entry point (also installed as `codepilot` with `pip install -e .`)
+├── requirements.txt
+├── pyproject.toml
 ├── tests/              unit, offline E2E, adversarial and sandbox tests; tests/live/ for live Groq tests
 ├── sandbox_repo/       the deterministic demonstration repository
 ├── docs/               live evaluation procedure and record
 ├── .github/workflows/  CI
 │
 ├── AGENTS.md
+├── gemini.md
 ├── PRD.md
 ├── ARCHITECTURE.md
 ├── TOOLS.md
@@ -870,6 +871,7 @@ The project is organized around these documents:
 | Document | Purpose |
 |---|---|
 | `AGENTS.md` | Agent rules, safety boundaries, and operating policy |
+| `gemini.md` | Project instructions for the optional Gemini CLI development workflow |
 | `PRD.md` | Product requirements and MVP scope |
 | `ARCHITECTURE.md` | System architecture and control flow |
 | `TOOLS.md` | Tool contracts and tool safety |
