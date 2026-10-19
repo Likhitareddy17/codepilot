@@ -604,7 +604,7 @@ The LLM must not continue indefinitely.
 
 # 18. Historical Context Retrieval
 
-CodePilot keeps the three most recent tool results in full context.
+CodePilot keeps the three most recent tool results in full context, plus the latest successful read of each file (within a size cap) until a patch changes that file.
 
 Older results are represented by compact structured summaries.
 

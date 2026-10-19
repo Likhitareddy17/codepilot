@@ -131,6 +131,13 @@ class Settings:
             os.getenv("HISTORY_KEEP_RECENT_RESULTS", "3")
         )
     )
+    # Latest full read_file result per path stays visible (ADR-010 amendment); 0 switches it off
+    history_keep_file_reads: int = field(
+        default_factory=lambda: int(os.getenv("HISTORY_KEEP_FILE_READS", "8"))
+    )
+    history_file_reads_max_chars: int = field(
+        default_factory=lambda: int(os.getenv("HISTORY_FILE_READS_MAX_CHARS", "12000"))
+    )
     max_result_retrievals_per_run: int = field(
         default_factory=lambda: int(
             os.getenv("MAX_RESULT_RETRIEVALS_PER_RUN", "10")
@@ -188,6 +195,7 @@ class Settings:
             f"max_patch_attempts_per_file={self.max_patch_attempts_per_file}, "
             f"llm_max_retries={self.llm_max_retries}, "
             f"history_keep_recent_results={self.history_keep_recent_results}, "
+            f"history_keep_file_reads={self.history_keep_file_reads}, "
             f"max_result_retrievals_per_run={self.max_result_retrievals_per_run}, "
             f"runs_dir={self.runs_dir!r}, "
             f"log_path={self.log_path!r}, "

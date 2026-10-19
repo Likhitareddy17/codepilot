@@ -218,7 +218,7 @@ Free-tier limits are per minute and per day, so the history sent to the LLM must
 **Rule:** every full tool result is stored; the conversation carries summaries of old results; the agent can ask for an original back.
 
 1. **Store.** Every tool result (after safety filtering and the `MAX_TOOL_OUTPUT_CHARS` cap) is saved by `history.ResultStore` under a `call_id`, both in memory and on disk in `runs/<run_id>/results/<call_id>.json`.
-2. **Keep recent results in full.** The most recent results (count set by `HISTORY_KEEP_RECENT_RESULTS` in config) stay in the messages as full text.
+2. **Keep recent results in full.** The most recent results (count set by `HISTORY_KEEP_RECENT_RESULTS` in config) stay in the messages as full text. In addition, the latest successful `read_file` result of each path stays in full (newest first, up to `HISTORY_KEEP_FILE_READS` files and `HISTORY_FILE_READS_MAX_CHARS` characters), because a summary of a file read contains no code. A newer read of the same path replaces the older one, and a successful patch to a path drops its retained read so stale contents are not shown (ADR-010 amendment).
 3. **Summarise older results.** An older result is replaced in the messages by a **structured summary**:
 
 ```text
@@ -233,10 +233,10 @@ retrievable     true
 ```
 
    Key facts per tool (the coding agent implements one summariser per tool, listed in `TOOLS.md`): `run_tests` keeps pass/fail counts and failing test ids; `read_file` keeps path, line range and size; `search_code` keeps match count and the files matched; `read_logs`/`read_metrics` keep the headline findings (error types, error-rate extremes); `apply_patch` keeps path, applied or not, and the test counts after it; `git_diff` keeps changed files and line counts.
-4. **Never summarised:** the system prompt, the task message, the baseline and latest test results, and all patch records and their diffs.
+4. **Never summarised:** the system prompt, the task message, the baseline and latest test results, and all patch records and their diffs. File reads are kept as described in rule 2.
 5. **Retrieval.** The LLM can call the `get_tool_result` tool with a `call_id` to get the original stored result back. This is read-only, returns at most `MAX_TOOL_OUTPUT_CHARS`, counts toward the per-iteration tool-call cap, and is limited to `MAX_RESULT_RETRIEVALS_PER_RUN` per run so it cannot become a loop. A retrieved result counts as recent and stays in full until it ages out like any other.
 6. **Safety.** Stored results were already filtered when produced, so retrieval cannot expose denylisted files or secrets.
-7. **Config only.** `HISTORY_KEEP_RECENT_RESULTS` and `MAX_RESULT_RETRIEVALS_PER_RUN` are configuration values; the coding agent must not hard-code numbers taken from this document.
+7. **Config only.** `HISTORY_KEEP_RECENT_RESULTS`, `HISTORY_KEEP_FILE_READS`, `HISTORY_FILE_READS_MAX_CHARS` and `MAX_RESULT_RETRIEVALS_PER_RUN` are configuration values; the coding agent must not hard-code numbers taken from this document.
 
 ---
 

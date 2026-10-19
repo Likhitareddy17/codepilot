@@ -274,7 +274,7 @@ A run may stop before reaching the iteration limit.
 
 ### Decision
 
-The five most recent tool results remain in full active context.
+The most recent tool results remain in full active context (three by default, `HISTORY_KEEP_RECENT_RESULTS`; an earlier draft of this ADR said five).
 
 Older results are compressed into structured summaries while their complete original results remain persisted in run state/trace.
 
@@ -301,6 +301,14 @@ The hybrid approach balances:
 ### Consequence
 
 The model does not always receive every historical result in full automatically, but important older evidence remains recoverable.
+
+### Amendment (2026-10-18): the latest read of each file stays in full
+
+**Context.** A summarized `read_file` result keeps only the path and line range, with no code. The recent window counts results, not iterations, and a model that returns one tool call per reply (observed with `openai/gpt-oss-120b` on Groq) therefore sees only its last three file reads. Live run `20261018-111755` (documented defaults: 15 iterations, window of 3) used all 15 iterations and applied no patch while the same source and test files were read repeatedly. An offline simulation with the real controller showed the window alone can make a repair impossible: a model that reads all six sandbox files first needs 19 iterations at a window of 3 (above the limit of 15), and 12 once file reads are retained. The simulation shows what the history makes possible, not that a live model now succeeds.
+
+**Amendment.** In addition to the recent window, the latest successful `read_file` result of each path stays in full, subject to two caps (`HISTORY_KEEP_FILE_READS`, default 8 files, and `HISTORY_FILE_READS_MAX_CHARS`, default 12,000 characters), applied newest first. A new read of the same path replaces the older copy. A successful `apply_patch` to a path drops its retained read, so stale contents are never shown. Failed reads are not retained. Older reads are summarized as before and remain retrievable with `get_tool_result`. Setting `HISTORY_KEEP_FILE_READS=0` restores the original behaviour.
+
+**Consequence.** Evidence needed to write a patch (the exact source text) is no longer lost after three more results, while the context stays bounded: the cap is about 3,000 tokens in the worst case. Baseline results, patch results, the latest test run, protected paths and the verification rules are unchanged. Whether this raises the live repair rate is not yet measured; it needs its own batch of live runs, recorded separately in `docs/demo/runs.md`.
 
 ---
 
@@ -728,7 +736,7 @@ The default `MAX_ITERATIONS` is 15. It stays configurable by environment variabl
 
 ### Consequence
 
-Runs cost more tokens (the successful run used about 43,000; the fourth run about 56,500) and take longer (about 3.5 to 6 minutes). A limit of 15 does not guarantee success: the live success rate is not established (1 verified success in 4 recorded runs). A model that batches tool calls will finish in far fewer iterations. Reported results must state the limit used.
+Runs cost more tokens (the successful run used about 43,000; the fourth run about 56,500) and take longer (about 3.5 to 6 minutes). A limit of 15 does not guarantee success: the live success rate is not established (1 verified success in 5 recorded runs; the fifth run used all 15 iterations without applying a patch, which is analysed in the ADR-010 amendment). A model that batches tool calls will finish in far fewer iterations. Reported results must state the limit used.
 
 ---
 

@@ -137,6 +137,8 @@ class ResultStore:
     def __init__(self, run_dir: Optional[Path], settings: Settings) -> None:
         self.run_dir = Path(run_dir) if run_dir is not None else None
         self.keep_recent = settings.history_keep_recent_results
+        self.keep_file_reads = settings.history_keep_file_reads
+        self.file_reads_max_chars = settings.history_file_reads_max_chars
         self.max_retrievals = settings.max_result_retrievals_per_run
         self.retrieval_count = 0
         self.records: List[ToolRecord] = []
@@ -144,6 +146,9 @@ class ResultStore:
         self._results: Dict[str, Dict[str, Any]] = {}
         self._order: List[str] = []
         self._pinned: Set[str] = set()
+        self._file_reads: Dict[str, str] = {}      # path -> call_id of its latest successful read, oldest first
+        self._sizes: Dict[str, int] = {}           # call_id -> stored size in characters (file reads only)
+        self._retained: Optional[Set[str]] = None  # cache of the retained read ids; reset by add()
 
     # --- persistence ---
 
@@ -165,6 +170,7 @@ class ResultStore:
         }
         self._results[call_id] = entry
         self._order.append(call_id)
+        self._track_file_reads(call_id, tool, result)
         path = self._path(call_id)
         saved = ""
         if path is not None:
@@ -182,6 +188,42 @@ class ResultStore:
         )
         self.records.append(record)
         return record
+
+    # --- file-read retention ---
+
+    def _track_file_reads(self, call_id: str, tool: str, result: ToolResult) -> None:
+        """Remember the latest successful read of each file; forget it when a patch changes the file."""
+        path = result.data.get("path") if isinstance(result.data, dict) else None
+        if not result.ok or not isinstance(path, str):
+            return
+        if tool == "read_file":
+            self._file_reads.pop(path, None)               # a re-read replaces the older copy and becomes the newest
+            self._file_reads[path] = call_id
+            self._sizes[call_id] = len(json.dumps(result.to_dict(), ensure_ascii=False, default=repr))
+            self._retained = None
+        elif tool == "apply_patch":
+            self.invalidate_file_read(path)
+
+    def invalidate_file_read(self, path: str) -> None:
+        """Forget the retained read of a path after a patch or revert."""
+        if self._file_reads.pop(path, None) is not None:
+            self._retained = None                         # the retained contents are now stale
+
+    def _retained_reads(self) -> Set[str]:
+        """Call ids of the file reads kept in full: newest first, until the count or size cap is reached."""
+        if self._retained is None:
+            kept: Set[str] = set()
+            total = 0
+            for call_id in reversed(list(self._file_reads.values())):
+                size = self._sizes.get(call_id, 0)
+                if size > self.file_reads_max_chars:
+                    continue
+                if len(kept) >= self.keep_file_reads or total + size > self.file_reads_max_chars:
+                    break
+                kept.add(call_id)
+                total += size
+            self._retained = kept
+        return self._retained
 
     def get(self, call_id: str) -> Optional[Dict[str, Any]]:
         """Stored entry for ``call_id``: memory first, then the results file."""
@@ -238,7 +280,7 @@ class ResultStore:
         return None
 
     def is_full(self, call_id: str) -> bool:
-        """Recent results, pinned results, patch results and the latest test run stay in full."""
+        """Recent results, pinned results, patch results, the latest test run and retained file reads stay in full."""
         entry = self._results.get(call_id)
         if entry is None:
             return False
@@ -246,6 +288,7 @@ class ResultStore:
         return (
             call_id in recent
             or call_id in self._pinned
+            or call_id in self._retained_reads()
             or call_id == self._latest_run_tests()
             or (entry["tool"] == "apply_patch" and entry["ok"])
         )

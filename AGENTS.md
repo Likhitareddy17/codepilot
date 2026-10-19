@@ -67,6 +67,8 @@ All limits live in one config object and are overridable by environment variable
 | `LLM_MAX_RETRIES` | 4 (exponential backoff on HTTP 429 honoring retry-after header and transient errors) |
 | `MAX_REQUEST_TOKENS_ESTIMATE` | 5000 |
 | `HISTORY_KEEP_RECENT_RESULTS` | 3 |
+| `HISTORY_KEEP_FILE_READS` | 8 |
+| `HISTORY_FILE_READS_MAX_CHARS` | 12000 |
 | `MAX_RESULT_RETRIEVALS_PER_RUN` | 10 |
 
 One iteration is one LLM reply plus execution of its tool calls. The default of 15 comes from live evidence (`docs/demo/runs.md`): `openai/gpt-oss-120b` on Groq returns one tool call per reply, so repairing the four-bug sandbox took 11 iterations, and a limit of 6 stopped every earlier run. A model that batches tool calls needs far fewer.

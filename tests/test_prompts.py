@@ -191,6 +191,7 @@ def test_conversation_starts_with_system_and_task(settings, tmp_path):
 
 
 def test_old_tool_results_are_rendered_as_summaries_and_recent_ones_in_full(settings, tmp_path):
+    settings.history_keep_file_reads = 0     # these tests cover the plain recent window; retention has its own tests
     store = ResultStore(tmp_path, settings)
     conversation = Conversation("S", "T")
     for i in range(1, 6):
@@ -206,6 +207,7 @@ def test_old_tool_results_are_rendered_as_summaries_and_recent_ones_in_full(sett
 
 
 def test_rendering_follows_the_store_as_results_age(settings, tmp_path):
+    settings.history_keep_file_reads = 0     # these tests cover the plain recent window; retention has its own tests
     store = ResultStore(tmp_path, settings)
     conversation = Conversation("S", "T")
     store.add("c001", "read_file", {}, fake_result("c001"))
@@ -218,6 +220,7 @@ def test_rendering_follows_the_store_as_results_age(settings, tmp_path):
 
 
 def test_extra_text_is_appended_only_while_the_result_is_shown_in_full(settings, tmp_path):
+    settings.history_keep_file_reads = 0     # these tests cover the plain recent window; retention has its own tests
     store = ResultStore(tmp_path, settings)
     conversation = Conversation("S", "T")
     store.add("c001", "read_file", {}, fake_result("c001"))

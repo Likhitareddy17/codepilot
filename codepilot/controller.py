@@ -303,6 +303,7 @@ class Controller:
             if record is None:
                 break
             reverted.append(record.path)
+            self.history.invalidate_file_read(record.path)
         return reverted
 
     # ------------------------------------------------ claims, final decision

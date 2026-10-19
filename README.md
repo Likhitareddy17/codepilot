@@ -15,9 +15,9 @@ CodePilot is a working MVP: every component is implemented and tested, and it ha
 | Area | State |
 |---|---|
 | Implementation | Complete: workspace and Git isolation, nine controlled tools, evidence-driven controller, verification, audit, commit, trace, report, CLI |
-| Offline tests | 836 tests (833 run by default; 3 live tests need a Groq key and run only with `-m live`). No normal test calls an LLM. |
+| Offline tests | 849 tests (846 run by default; 3 live tests need a Groq key and run only with `-m live`). No normal test calls an LLM. |
 | CI | GitHub Actions on Ubuntu and Windows, Python 3.11 ([workflow](.github/workflows/ci.yml)) |
-| Live evaluation | 4 recorded runs on `openai/gpt-oss-120b` (Groq free tier): 1 verified success. Details below and in [`docs/demo/runs.md`](docs/demo/runs.md). |
+| Live evaluation | 5 recorded runs on `openai/gpt-oss-120b` (Groq free tier): 1 verified success. Details below and in [`docs/demo/runs.md`](docs/demo/runs.md). |
 
 ### Live evaluation (honest summary)
 
@@ -29,12 +29,14 @@ Every live run is recorded, including the failures. Procedure: [`docs/live_evalu
 | `20261016-074108` | v2 | 6 | `MAX_ITERATIONS`, 4/8 to 4/8 passing | 6 | 17,288 | 75 s |
 | `20261016-075658` | v2 | 14 | **Verified success**, 4/8 to 8/8 passing, 4 patches | 11 | 42,750 | 203 s |
 | `20261017-124438` | v2 | 14 | `MAX_ITERATIONS`, 4/8 to 7/8 passing, 3 patches | 14 | 56,545 | 343 s |
+| `20261018-111755` | v2 | 15 | `MAX_ITERATIONS`, 4/8 to 4/8 passing, no patch | 15 | 55,179 | 324 s |
 
 What this does and does not show:
 
 - The model returns **one tool call per reply** (checked with a live probe), so a repair needs roughly one iteration per file read and per patch. The first two runs ran out of the old 6-iteration budget before applying any patch. The default is now 15 ([ADR-027](ADR.md)).
 - The fourth run applied three of the four fixes and stopped one fix short at 7/8. About four of its 14 iterations went on re-reading files and on one patch whose `old` text did not match, so 15 iterations is roughly the minimum observed need, not generous headroom.
-- One of four runs reached SUCCESS, but this sample is too small to establish a reliable success rate. The first two runs were limited by the iteration budget, not by a wrong fix. More runs are needed before drawing conclusions.
+- The fifth run used the documented defaults (limit 15, recent window of 3) and applied no patch in 15 iterations while the same source and test files were read repeatedly. A shortened `read_file` result contains no code, so a one-call-per-reply model loses file contents after three more results. The history now keeps the latest read of each file (ADR-010 amendment). An offline simulation shows the repair is no longer impossible within 15 iterations; **no live run has yet tested this change**.
+- One of five runs reached SUCCESS, but this sample is too small to establish a reliable success rate. The first two runs were limited by the iteration budget, not by a wrong fix. More runs are needed before drawing conclusions.
 - Free-tier limits (about 8,000 tokens per minute) make a run take minutes, and only a few full runs fit in a day.
 - The deterministic FakeLLM tests prove the controller, not the model. The live runs are the evidence about the model.
 
@@ -359,6 +361,7 @@ CodePilot therefore uses a hybrid history strategy:
 
 ```text
 Most recent 3 tool results (default, HISTORY_KEEP_RECENT_RESULTS)
++ the latest read of each file (up to 8 files / 12,000 characters)
         ↓
       full
 
@@ -651,6 +654,8 @@ GROQ_MODEL=openai/gpt-oss-120b      # optional, this is the default
 | `MAX_ITERATIONS` | 15 | LLM replies allowed per run |
 | `COMMAND_TIMEOUT_SECONDS` | 60 | timeout for each pytest or Git command |
 | `HISTORY_KEEP_RECENT_RESULTS` | 3 | tool results kept in full in the model's context |
+| `HISTORY_KEEP_FILE_READS` | 8 | files whose latest read stays in full (0 turns this off) |
+| `HISTORY_FILE_READS_MAX_CHARS` | 12000 | size cap for those retained reads |
 | `MAX_TOOL_CALLS_PER_ITERATION` | 10 | tool calls accepted from one reply |
 | `RUNS_DIR` | `runs` | where run folders are written |
 | `KEEP_WORKSPACE` | false | keep the temporary workspace |
@@ -778,7 +783,7 @@ Current limitations include:
 - bounded context retrieval
 - imperfect semantic test-gaming detection
 - live LLM behavior can differ from deterministic FakeLLM behavior
-- the live success rate is not established: 1 verified success in 4 recorded runs (see Status)
+- the live success rate is not established: 1 verified success in 5 recorded runs, and the file-read retention change has not yet been tested live (see Status)
 - models that return one tool call per reply need many iterations (about 11 for the sandbox); the free-tier token limit makes such runs take minutes
 - secret-shaped text inside files the agent may read (source, logs) is not redacted in tool output; only secret files and the process environment are blocked, and the trace and report are redacted
 - `PROTECTED_PATH_NEEDED` (the agent asking for an edit it is not allowed to make) is not produced yet; protected edits are refused and counted instead

@@ -101,6 +101,7 @@ def test_only_the_three_most_recent_results_stay_in_full(tmp_path, settings):
 @pytest.mark.parametrize("keep,expected_full", [(1, 1), (5, 5), (0, 0)])
 def test_recent_count_comes_from_configuration(tmp_path, settings, keep, expected_full):
     settings.history_keep_recent_results = keep
+    settings.history_keep_file_reads = 0           # file-read retention is a separate rule, tested below
     store = ResultStore(tmp_path, settings)
     fill(store, 8)
     assert sum(is_full(t) for t in store.render_all().values()) == expected_full
@@ -210,6 +211,7 @@ def test_retrieval_returns_the_original_result_exactly(registry, ctx):
 
 
 def test_older_result_is_summarised_in_context_but_retrievable(registry, ctx):
+    ctx.history.keep_file_reads = 0                      # file-read retention off: this test covers the plain window
     first = call(registry, "read_file", path="app/pagination.py")
     for _ in range(4):
         call(registry, "list_files", path="app")
@@ -293,3 +295,118 @@ def test_retrieval_adds_no_new_information(registry, ctx):
     original = call(registry, "read_file", path="app/pagination.py")
     retrieved = call(registry, "get_tool_result", call_id=original.call_id)
     assert retrieved.data["result"] == original.to_dict()   # exactly what the model was already shown
+
+
+# ------------------------------------------- file-read retention (ADR-010 amendment)
+
+
+def file_read(store, call_id, path, size=100, ok=True):
+    """Add a read_file result whose stored JSON is about ``size`` characters."""
+    data = {"path": path, "start_line": 1, "end_line": 5, "total_lines": 5, "lines": ["x" * size]}
+    store.add(call_id, "read_file", {"path": path}, fake(call_id, data=data, ok=ok,
+              error=None if ok else {"code": "NOT_FOUND", "message": "x"}))
+
+
+def full_ids(store):
+    return [cid for cid, text in store.render_all().items() if is_full(text)]
+
+
+def test_distinct_file_reads_stay_in_full_after_the_recent_window_moves_on(tmp_path, settings):
+    """The failure of live run 20261018-111755: after six reads only the last three were visible."""
+    store = ResultStore(tmp_path, settings)                        # recent window = 3
+    for i, path in enumerate(["a.py", "b.py", "c.py", "d.py", "e.py", "f.py"], 1):
+        file_read(store, f"c{i:03d}", path)
+    for i in range(7, 12):
+        store.add(f"c{i:03d}", "list_files", {}, fake(f"c{i:03d}", "list_files", data={"entries": [], "path": "."}))
+    assert full_ids(store) == ["c001", "c002", "c003", "c004", "c005", "c006", "c009", "c010", "c011"]
+
+
+def test_older_non_file_results_still_age_out(tmp_path, settings):
+    store = ResultStore(tmp_path, settings)
+    file_read(store, "c001", "a.py")
+    for i in range(2, 8):
+        store.add(f"c{i:03d}", "search_code", {}, fake(f"c{i:03d}", "search_code", data={"pattern": "x", "matches": [], "match_count": 0}))
+    assert is_full(store.render("c001"))                           # the file read is retained
+    assert [is_full(store.render(f"c{i:03d}")) for i in range(2, 8)] == [False, False, False, True, True, True]
+
+
+def test_a_new_read_of_the_same_path_replaces_the_retained_copy(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    store = ResultStore(tmp_path, settings)
+    file_read(store, "c001", "a.py")
+    file_read(store, "c002", "b.py")
+    file_read(store, "c003", "a.py")                               # a.py read again
+    file_read(store, "c004", "c.py")
+    file_read(store, "c005", "d.py")
+    assert full_ids(store) == ["c002", "c003", "c004", "c005"]     # the old a.py read (c001) is gone, the new one stays
+
+
+def test_a_successful_patch_invalidates_the_retained_read_of_that_file_only(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    store = ResultStore(tmp_path, settings)
+    file_read(store, "c001", "a.py")
+    file_read(store, "c002", "b.py")
+    store.add("c003", "apply_patch", {"path": "a.py"}, fake("c003", "apply_patch", data={"path": "a.py", "applied": True, "diff": "-x\n+y\n"}))
+    file_read(store, "c004", "c.py")
+    full = full_ids(store)
+    assert "c001" not in full, "stale pre-patch contents must not stay visible"
+    assert {"c002", "c003", "c004"} <= set(full)                   # other files, the patch result and the newest read stay
+
+
+def test_a_failed_patch_does_not_invalidate_a_retained_read(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    store = ResultStore(tmp_path, settings)
+    file_read(store, "c001", "a.py")
+    store.add("c002", "apply_patch", {"path": "a.py"}, fake("c002", "apply_patch", ok=False, data={},
+              error={"code": "MATCH_NOT_FOUND", "message": "x"}))
+    file_read(store, "c003", "b.py")
+    assert "c001" in full_ids(store)
+
+
+def test_failed_reads_are_never_retained(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    store = ResultStore(tmp_path, settings)
+    file_read(store, "c001", "missing.py", ok=False)
+    file_read(store, "c002", "a.py")
+    file_read(store, "c003", "b.py")
+    assert full_ids(store) == ["c002", "c003"]
+
+
+def test_the_file_count_cap_evicts_the_least_recently_read_files(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    settings.history_keep_file_reads = 3
+    store = ResultStore(tmp_path, settings)
+    for i, path in enumerate("abcde", 1):
+        file_read(store, f"c{i:03d}", f"{path}.py")
+    assert full_ids(store) == ["c003", "c004", "c005"]
+
+
+def test_the_character_budget_is_applied_newest_first_and_deterministically(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    settings.history_file_reads_max_chars = 900
+    store = ResultStore(tmp_path, settings)
+    for i, path in enumerate("abcde", 1):
+        file_read(store, f"c{i:03d}", f"{path}.py", size=250)      # about 410 characters of JSON each, so two fit in 900
+    first = full_ids(store)
+    assert first == full_ids(store) and first == ["c004", "c005"]
+    assert len(first) == 2
+
+
+def test_retention_can_be_switched_off(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    settings.history_keep_file_reads = 0
+    store = ResultStore(tmp_path, settings)
+    for i, path in enumerate("abc", 1):
+        file_read(store, f"c{i:03d}", f"{path}.py")
+    assert full_ids(store) == ["c003"]
+
+
+def test_evicted_file_reads_remain_retrievable_summaries(tmp_path, settings):
+    settings.history_keep_recent_results = 1
+    settings.history_keep_file_reads = 1
+    store = ResultStore(tmp_path, settings)
+    for i, path in enumerate("abc", 1):
+        file_read(store, f"c{i:03d}", f"{path}.py")
+    old = json.loads(store.render("c001"))
+    assert old["retrievable"] is True and old["key_facts"]["path"] == "a.py" and "data" not in old
+    assert store.get("c001")["result"]["data"]["path"] == "a.py"

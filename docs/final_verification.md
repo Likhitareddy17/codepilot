@@ -18,7 +18,7 @@ you have seen the evidence, and record the date.
 | 7 | Independent `fix.patch` application | `tests/test_sandbox.py` does it for the offline run; for a live run use the commands in README section 17 | [x] by 2026-10-17: live run `20261016-075658`; `git apply --check` passed, 8 passed, only `app/orders.py`, `app/pagination.py`, `app/pricing.py` changed |
 | 8 | CI on Ubuntu | GitHub Actions, latest commit on `main` | [x] by 2026-10-17: workflow runs #10 to #15 green (matrix of both operating systems), including `4b1bb4d` (#14) and `c2fdfd1` (#15) |
 | 9 | CI on Windows | GitHub Actions, latest commit on `main` | [x] by 2026-10-17: workflow runs #10 to #15 green (matrix of both operating systems), including `4b1bb4d` (#14) and `c2fdfd1` (#15) |
-| 10 | Live Groq evaluation | `docs/live_evaluation.md`; every run in `docs/demo/runs.md` | [x] by 2026-10-17: 4 runs recorded, failures included, 1 verified success |
+| 10 | Live Groq evaluation | `docs/live_evaluation.md`; every run in `docs/demo/runs.md` | [x] by 2026-10-18: 5 runs recorded, failures included, 1 verified success |
 | 11 | Review trace and report artifacts | open `runs\<run_id>\report.md` and `run_trace.json` of a live run | [x] by 2026-10-17: run `20261016-075658` reviewed; known gap: controller `run_tests` entries have no timestamp |
 | 12 | No protected file modified | automated in every sandbox run and in the live test; also read `fix.patch` (only `app/*.py` may change) | Automated + [x] by 2026-10-17: patch for `20261016-075658` touches only the three `app/` files; no protected-file attempts |
 | 13 | Canonical sandbox unchanged | automated by hash in `tests/test_sandbox.py`, `tests/test_e2e_sandbox.py` and the live test | Automated + [x] by 2026-10-17: `git diff --exit-code` returned 0 and `git status --porcelain` was empty in `sandbox_repo` |
@@ -60,7 +60,7 @@ you have seen the evidence, and record the date.
 | Sandbox contains the intended seeded defects | `test_sandbox.py` | Automated |
 | Independent `fix.patch` application passes | `test_sandbox.py` (offline), step 7 (live) | Automated + Verified (step 7) |
 | CI passes on Ubuntu and Windows (Python 3.11) | steps 8 and 9 | Verified (steps 8 and 9, see the note there) |
-| Live evaluation recorded honestly | `docs/demo/runs.md` | Verified (step 10): all four runs recorded, failures included; README says 1 verified success in 4 runs and that no rate is established |
+| Live evaluation recorded honestly | `docs/demo/runs.md` | Verified (step 10): all five runs recorded, failures included; README says 1 verified success in 5 runs and that no rate is established |
 | README and architecture documentation complete | `README.md`, `ARCHITECTURE.md` (approved diagram) | Counts and live results reconciled with `runs.md` and the test collection at `4b1bb4d`; a full read-through is still yours |
 
 ## What this record covers
@@ -71,7 +71,7 @@ read-through (Definition of Done) and therefore step 14.
 
 ## Known limitations that stay open (documented in README section 20)
 
-- The live success rate is not established (1 verified success in 4 recorded runs).
+- The live success rate is not established (1 verified success in 5 recorded runs).
 - Secret-shaped text inside readable source and log files is not redacted in tool output.
 - `PROTECTED_PATH_NEEDED` is not produced; `MAX_REQUEST_TOKENS_ESTIMATE` is not enforced.
 - Semantic test gaming inside an allowed source file cannot be detected by the MVP.

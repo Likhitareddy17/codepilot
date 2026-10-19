@@ -13,6 +13,7 @@ import pytest
 from codepilot import cli
 from codepilot.llm import fake
 from codepilot.llm.fake import FALSE_SUCCESS_TEXT, FakeLLM, call, respond, say
+from support_policy import FILES, ReadFirstModel, visible_files
 from support_sandbox import SANDBOX, apply_edit, copy_sandbox, load_manifest, sandbox_files, tree_hash
 
 pytestmark = pytest.mark.slow
@@ -187,3 +188,41 @@ def test_a_passing_targeted_test_is_not_success(offline_cli_env, manifest, fixes
 
 def test_the_sandbox_files_are_untouched_by_all_of_the_above(manifest):
     assert sandbox_files(SANDBOX) == sorted(manifest["files"])
+
+
+# ------------------------------------------------ file-read retention (ADR-010 amendment)
+
+
+def test_six_files_read_one_per_reply_are_all_visible_to_the_model(offline_cli_env, manifest):
+    """Live run 20261018-111755 re-read files because only the last three results were visible."""
+    script = [fake.investigate()] + [respond(call("read_file", path=p, start_line=1, end_line=400)) for p in FILES] + [fake.investigate()]
+    llm = FakeLLM(script)
+    cli.main(["--repo", str(SANDBOX), "--max-iterations", str(len(script))], llm=llm)
+    assert visible_files(llm.calls[-1].messages) >= set(FILES), "file contents fell out of the model's context"
+
+
+def test_a_patched_file_is_no_longer_shown_with_its_stale_contents(offline_cli_env, manifest):
+    fix = manifest["bugs"]["BUG-02"]["fix"]
+    script = [respond(call("read_file", path="app/orders.py", start_line=1, end_line=400)),
+              respond(call("read_file", path="app/pagination.py", start_line=1, end_line=400)),
+              respond(call("apply_patch", path=fix["path"], old=fix["old"], new=fix["new"])),
+              fake.investigate(),
+              respond(call("read_file", path="app/orders.py", start_line=1, end_line=400)),
+              fake.investigate()]
+    llm = FakeLLM(script)
+    cli.main(["--repo", str(SANDBOX), "--max-iterations", str(len(script))], llm=llm)
+    after_patch = visible_files(llm.calls[3].messages)            # request after the patch result is in the history
+    assert "app/pagination.py" in after_patch and "app/orders.py" not in after_patch
+    assert "app/orders.py" in visible_files(llm.calls[5].messages), "the re-read must be visible again"
+
+
+def test_a_read_everything_first_model_can_finish_within_the_default_budget(offline_cli_env, manifest):
+    """Simulator evidence only: it shows the history no longer makes the repair impossible, not that a live model succeeds."""
+    model = ReadFirstModel()
+    code = cli.main(["--repo", str(SANDBOX)], llm=model)                  # default limits: 15 iterations, window of 3
+    run = next(offline_cli_env.runs.iterdir())
+    trace = json.loads((run / "run_trace.json").read_text(encoding="utf-8"))
+    assert code == 0 and trace["outcome"]["success"], model.log
+    assert trace["outcome"]["iterations"] <= 14, model.log
+    # The only legitimate re-read is app/orders.py after its own patch: BUG-04 needs the fresh text.
+    assert [step for step in model.log if step.startswith("re-read")] == ["re-read app/orders.py"], model.log

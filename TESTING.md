@@ -697,6 +697,7 @@ CodePilot follows:
 The history system must:
 
 1.  keep the configured number of most recent tool results in full;
+    (file reads: the latest read of each path stays in full within the configured caps, a newer read replaces it, a successful patch to the path invalidates it);
 2.  compress older results into structured summaries;
 3.  persist every full original result;
 4.  retrieve older results using `get_tool_result(call_id)`;
